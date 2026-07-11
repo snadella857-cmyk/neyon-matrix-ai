@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omniverse Infinite Design Engine & Console</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .font-mono-premium {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .theme-transition {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body id="main-body" class="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col md:flex-row">
+
+    <aside class="w-full md:w-80 bg-white border-b md:border-b-0 md:border-r border-slate-200 p-6 flex flex-col justify-between sticky top-0 md:h-screen z-50 overflow-y-auto">
+        <div class="space-y-6">
+            <div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xl">🛠️</span>
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Design Studio Panel</h2>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-1">Bina code badle screen par hi live look and feel design karo.</p>
+            </div>
+
+            <div class="space-y-2.5">
+                <label class="text-[10px] font-mono-premium font-bold tracking-wider text-slate-400 uppercase">1-Click Look Presets</label>
+                <div class="grid grid-cols-1 gap-2">
+                    <button onclick="applyPreset('clean')" class="w-full text-left text-xs font-semibold px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100 transition flex items-center justify-between cursor-pointer">
+                        <span>⚪ Minimalist Corporate Light</span>
+                        <span class="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Stripe Style</span>
+                    </button>
+                    <button onclick="applyPreset('luxury')" class="w-full text-left text-xs font-semibold px-3 py-2.5 rounded-lg border border-amber-200 bg-amber-50/40 text-amber-950 hover:bg-amber-50 transition flex items-center justify-between cursor-pointer">
+                        <span>👑 Ultra Luxury Executive Gold</span>
+                        <span class="text-[9px] bg-amber-200/60 text-amber-800 px-1.5 py-0.5 rounded">Premium</span>
+                    </button>
+                    <button onclick="applyPreset('dark-neon')" class="w-full text-left text-xs font-semibold px-3 py-2.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-100 hover:bg-slate-850 transition flex items-center justify-between cursor-pointer">
+                        <span>⚫ Pro Cyber Dark Neon</span>
+                        <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded">Vercel Vibe</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="space-y-4 pt-4 border-t border-slate-100">
+                <label class="text-[10px] font-mono-premium font-bold tracking-wider text-slate-400 uppercase">Manual Live Tuning</label>
+                
+                <div class="space-y-1.5">
+                    <span class="text-xs font-medium text-slate-700 flex justify-between">
+                        <span>Component Roundness</span>
+                    </span>
+                    <div class="flex gap-1.5">
+                        <button onclick="changeRadius('none')" class="text-[10px] bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-sm font-mono-premium cursor-pointer">0px</button>
+                        <button onclick="changeRadius('md')" class="text-[10px] bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-md font-mono-premium cursor-pointer">6px</button>
+                        <button onclick="changeRadius('xl')" class="text-[10px] bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg font-mono-premium cursor-pointer">12px</button>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <span class="text-xs font-medium text-slate-700">Dynamic Highlight Injector</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="changeAccent('#0f172a', 'slate')" class="h-6 w-6 rounded-full bg-slate-900 border border-slate-300 cursor-pointer" title="Slate"></button>
+                        <button onclick="changeAccent('#b45309', 'amber')" class="h-6 w-6 rounded-full bg-amber-600 border border-slate-300 cursor-pointer" title="Gold"></button>
+                        <button onclick="changeAccent('#2563eb', 'blue')" class="h-6 w-6 rounded-full bg-blue-600 border border-slate-300 cursor-pointer" title="Tech Blue"></button>
+                        <button onclick="changeAccent('#10b981', 'emerald')" class="h-6 w-6 rounded-full bg-emerald-500 border border-slate-300 cursor-pointer" title="Live Green"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-[10px] font-mono-premium text-slate-400 mt-6 pt-4 border-t border-slate-100">
+            Engine Mode: Live Variable Styler
+        </div>
+    </aside>
+
+    <div id="dashboard-container" class="flex-grow p-6 sm:p-10 space-y-6 overflow-y-auto theme-transition">
+        
+        <header id="dash-card-header" class="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4 theme-transition">
+            <div>
+                <p id="sub-title-text" class="text-[10px] font-mono-premium tracking-widest text-slate-400 uppercase font-bold">High-Revenue SaaS Matrix Pipeline</p>
+                <h2 id="title-text" class="text-2xl font-bold tracking-tight text-slate-900 mt-0.5">Executive Operational Portfolio</h2>
+                <p id="desc-text" class="text-slate-500 text-sm max-w-2xl mt-1 leading-relaxed">
+                    Real-time cloud asset telemetry, multi-tenant resource architecture, and optimized financial pipelines running live metrics.
+                </p>
+            </div>
+            <div id="header-stat-box" class="bg-slate-50 border border-slate-200 p-3 rounded-lg flex items-center space-x-4 w-full md:w-auto theme-transition">
+                <div class="font-mono-premium">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">Active Nodes</p>
+                    <p class="text-lg font-bold text-slate-900">4,129 Active</p>
+                </div>
+                <span class="h-8 w-px bg-slate-200"></span>
+                <div class="font-mono-premium">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">Regions</p>
+                    <p class="text-lg font-bold text-slate-900">14 Zones</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+            <div class="dash-card bg-white rounded-xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between theme-transition">
+                <div>
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">🎙️ Voice Automation Hub</h3>
+                        <span class="accent-tag text-[9px] font-mono-premium font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">GPT-4O REALTIME</span>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-3xl font-bold text-slate-900 tracking-tight font-mono-premium">4.892M</p>
+                        <p class="text-xs text-slate-500">Synchronized Token Allocation Stream</p>
+                    </div>
+                </div>
+                <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between text-[11px] font-mono-premium text-slate-400">
+                    <span>Lifetime Volume:</span>
+                    <span class="text-slate-700 font-semibold">12.5M tokens</span>
+                </div>
+            </div>
+
+            <div class="dash-card bg-white rounded-xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between theme-transition">
+                <div>
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">📉 Infrastructure FinOps</h3>
+                        <span class="accent-tag text-[9px] font-mono-premium font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">AWS AUTO-SCALE</span>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-3xl font-bold text-slate-900 tracking-tight font-mono-premium">₹4,52,300</p>
+                        <p class="text-xs text-slate-500">Automated Cost Strategy Retained</p>
+                    </div>
+                </div>
+                <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between text-[11px] font-mono-premium text-slate-400">
+                    <span>Cluster Target:</span>
+                    <span class="text-slate-700 font-semibold">ASG-PROD</span>
+                </div>
+            </div>
+
+            <div class="dash-card bg-white rounded-xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between theme-transition sm:col-span-2 lg:col-span-1">
+                <div>
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">⚖️ Corporate Billing</h3>
+                        <span class="accent-tag text-[9px] font-mono-premium font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">TAX MATCHED</span>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-3xl font-bold text-slate-900 tracking-tight font-mono-premium">142 <span class="text-xs font-normal text-slate-400">Units</span></p>
+                        <p class="text-xs text-slate-500">Corporate Audit Ledgers Dispatched</p>
+                    </div>
+                </div>
+                <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between text-[11px] font-mono-premium text-slate-400">
+                    <span>Gross Ledger Pipeline:</span>
+                    <span class="text-slate-700 font-semibold">₹89.45 Lakh</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="dash-card bg-white rounded-xl p-6 border border-slate-200 shadow-xs theme-transition">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800 mb-4">System Ingestion Traffic Stability Spectrum</h3>
+            <div class="w-full bg-slate-50 rounded-xl p-4 relative overflow-hidden border border-slate-200">
+                <svg viewBox="0 0 1000 130" class="w-full h-auto stroke-2 fill-none min-w-[500px]">
+                    <path id="graph-path" d="M0,90 Q120,50 240,40 T480,70 T720,20 T880,55 T1000,10" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+        </div>
+
+        <div class="dash-card bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs theme-transition">
+            <div class="w-full overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs min-w-[600px]">
+                    <thead>
+                        <tr class="border-b border-slate-200 bg-slate-50/70 text-slate-500 font-mono-premium">
+                            <th class="p-4 font-semibold uppercase">Transaction Identity Token</th>
+                            <th class="p-4 font-semibold uppercase">Operational Process Name</th>
+                            <th class="p-4 font-semibold uppercase">Tax Allocation Framework</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-slate-700 font-mono-premium">
+                        <tr>
+                            <td class="p-4 text-slate-400">tx_premium_89431</td>
+                            <td class="p-4 font-sans text-slate-900 font-semibold">VOICE_AUTOMATION_PROD_INIT</td>
+                            <td class="p-4 text-slate-600">LUXURY_EXPORT_EXEMPT</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Realtime Theme Presets Engine
+        function applyPreset(theme) {
+            const body = document.getElementById('main-body');
+            const dashContainer = document.getElementById('dashboard-container');
+            const allCards = document.querySelectorAll('.dash-card, #dash-card-header');
+            const allText = document.querySelectorAll('#title-text, #desc-text, .text-slate-900, p');
+            const graphPath = document.getElementById('graph-path');
+            const tags = document.querySelectorAll('.accent-tag');
+
+            if (theme === 'clean') {
+                body.className = "bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col md:flex-row";
+                dashContainer.className = "flex-grow p-6 sm:p-10 space-y-6 overflow-y-auto theme-transition";
+                graphPath.setAttribute('stroke', '#0f172a');
+                allCards.forEach(c => {
+                    c.style.backgroundColor = '#ffffff';
+                    c.style.borderColor = '#e2e8f0';
+                });
+                tags.forEach(t => { t.className = "accent-tag text-[9px] font-mono-premium font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded"; });
+            } 
+            else if (theme === 'luxury') {
+                body.className = "bg-[#faf6f0] text-amber-950 antialiased min-h-screen flex flex-col md:flex-row";
+                dashContainer.className = "flex-grow p-6 sm:p-10 space-y-6 overflow-y-auto theme-transition bg-gradient-to-br from-amber-50/20 via-transparent to-transparent";
+                graphPath.setAttribute('stroke', '#b45309');
+                allCards.forEach(c => {
+                    c.style.backgroundColor = '#ffffff';
+                    c.style.borderColor = '#fcd34d';
+                });
+                tags.forEach(t => { t.className = "accent-tag text-[9px] font-mono-premium font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded"; });
+            } 
+            else if (theme === 'dark-neon') {
+                body.className = "bg-[#090d16] text-slate-100 antialiased min-h-screen flex flex-col md:flex-row";
+                dashContainer.className = "flex-grow p-6 sm:p-10 space-y-6 overflow-y-auto theme-transition";
+                graphPath.setAttribute('stroke', '#6366f1');
+                allCards.forEach(c => {
+                    c.style.backgroundColor = '#111827';
+                    c.style.borderColor = '#1f2937';
+                });
+                tags.forEach(t => { t.className = "accent-tag text-[9px] font-mono-premium font-bold text-indigo-400 bg-indigo-950/50 border border-indigo-900 px-2 py-0.5 rounded"; });
+            }
+        }
+
+        // Realtime Radius Control
+        function changeRadius(size) {
+            const elements = document.querySelectorAll('.dash-card, #dash-card-header, #header-stat-box');
+            elements.forEach(el => {
+                el.classList.remove('rounded-none', 'rounded-md', 'rounded-xl', 'rounded-2xl');
+                if (size === 'none') el.classList.add('rounded-none');
+                if (size === 'md') el.classList.add('rounded-md');
+                if (size === 'xl') el.classList.add('rounded-xl');
+            });
+        }
+
+        // Live Accent Injector
+        function changeAccent(color, name) {
+            const graphPath = document.getElementById('graph-path');
+            graphPath.setAttribute('stroke', color);
+            
+            const tags = document.querySelectorAll('.accent-tag');
+            tags.forEach(t => {
+                t.style.borderColor = color;
+                t.style.color = color;
+            });
+        }
+    </script>
+</body>
+</html>
