@@ -3,256 +3,447 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Omniverse Infinite Design Engine & Console</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Kraken Swarm Cluster</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .font-mono-premium {
-            font-family: 'JetBrains Mono', monospace;
-        }
-        .theme-transition {
-            transition: all 0.3s ease-in-out;
-        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
     </style>
 </head>
-<body id="main-body" class="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col md:flex-row">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-emerald-500 selection:text-slate-950">
 
-    <aside class="w-full md:w-80 bg-white border-b md:border-b-0 md:border-r border-slate-200 p-6 flex flex-col justify-between sticky top-0 md:h-screen z-50 overflow-y-auto">
-        <div class="space-y-6">
+    <header class="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-slate-950 text-lg font-black shadow-lg">
+                <i class="fa-solid fa-ghost"></i>
+            </div>
             <div>
-                <div class="flex items-center space-x-2">
-                    <span class="text-xl">🛠️</span>
-                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Design Studio Panel</h2>
-                </div>
-                <p class="text-[11px] text-slate-500 mt-1">Bina code badle screen par hi live look and feel design karo.</p>
-            </div>
-
-            <div class="space-y-2.5">
-                <label class="text-[10px] font-mono-premium font-bold tracking-wider text-slate-400 uppercase">1-Click Look Presets</label>
-                <div class="grid grid-cols-1 gap-2">
-                    <button onclick="applyPreset('clean')" class="w-full text-left text-xs font-semibold px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100 transition flex items-center justify-between cursor-pointer">
-                        <span>⚪ Minimalist Corporate Light</span>
-                        <span class="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Stripe Style</span>
-                    </button>
-                    <button onclick="applyPreset('luxury')" class="w-full text-left text-xs font-semibold px-3 py-2.5 rounded-lg border border-amber-200 bg-amber-50/40 text-amber-950 hover:bg-amber-50 transition flex items-center justify-between cursor-pointer">
-                        <span>👑 Ultra Luxury Executive Gold</span>
-                        <span class="text-[9px] bg-amber-200/60 text-amber-800 px-1.5 py-0.5 rounded">Premium</span>
-                    </button>
-                    <button onclick="applyPreset('dark-neon')" class="w-full text-left text-xs font-semibold px-3 py-2.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-100 hover:bg-slate-850 transition flex items-center justify-between cursor-pointer">
-                        <span>⚫ Pro Cyber Dark Neon</span>
-                        <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded">Vercel Vibe</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="space-y-4 pt-4 border-t border-slate-100">
-                <label class="text-[10px] font-mono-premium font-bold tracking-wider text-slate-400 uppercase">Manual Live Tuning</label>
-                
-                <div class="space-y-1.5">
-                    <span class="text-xs font-medium text-slate-700 flex justify-between">
-                        <span>Component Roundness</span>
-                    </span>
-                    <div class="flex gap-1.5">
-                        <button onclick="changeRadius('none')" class="text-[10px] bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-sm font-mono-premium cursor-pointer">0px</button>
-                        <button onclick="changeRadius('md')" class="text-[10px] bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-md font-mono-premium cursor-pointer">6px</button>
-                        <button onclick="changeRadius('xl')" class="text-[10px] bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg font-mono-premium cursor-pointer">12px</button>
-                    </div>
-                </div>
-
-                <div class="space-y-1.5">
-                    <span class="text-xs font-medium text-slate-700">Dynamic Highlight Injector</span>
-                    <div class="flex items-center gap-2">
-                        <button onclick="changeAccent('#0f172a', 'slate')" class="h-6 w-6 rounded-full bg-slate-900 border border-slate-300 cursor-pointer" title="Slate"></button>
-                        <button onclick="changeAccent('#b45309', 'amber')" class="h-6 w-6 rounded-full bg-amber-600 border border-slate-300 cursor-pointer" title="Gold"></button>
-                        <button onclick="changeAccent('#2563eb', 'blue')" class="h-6 w-6 rounded-full bg-blue-600 border border-slate-300 cursor-pointer" title="Tech Blue"></button>
-                        <button onclick="changeAccent('#10b981', 'emerald')" class="h-6 w-6 rounded-full bg-emerald-500 border border-slate-300 cursor-pointer" title="Live Green"></button>
-                    </div>
-                </div>
+                <h1 class="text-sm font-black tracking-wider uppercase text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-emerald-400">Kraken Matrix</h1>
+                <p class="text-[8px] text-slate-500 font-mono tracking-widest uppercase">Global Cloud Suite</p>
             </div>
         </div>
-
-        <div class="text-[10px] font-mono-premium text-slate-400 mt-6 pt-4 border-t border-slate-100">
-            Engine Mode: Live Variable Styler
-        </div>
-    </aside>
-
-    <div id="dashboard-container" class="flex-grow p-6 sm:p-10 space-y-6 overflow-y-auto theme-transition">
         
-        <header id="dash-card-header" class="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4 theme-transition">
-            <div>
-                <p id="sub-title-text" class="text-[10px] font-mono-premium tracking-widest text-slate-400 uppercase font-bold">High-Revenue SaaS Matrix Pipeline</p>
-                <h2 id="title-text" class="text-2xl font-bold tracking-tight text-slate-900 mt-0.5">Executive Operational Portfolio</h2>
-                <p id="desc-text" class="text-slate-500 text-sm max-w-2xl mt-1 leading-relaxed">
-                    Real-time cloud asset telemetry, multi-tenant resource architecture, and optimized financial pipelines running live metrics.
-                </p>
-            </div>
-            <div id="header-stat-box" class="bg-slate-50 border border-slate-200 p-3 rounded-lg flex items-center space-x-4 w-full md:w-auto theme-transition">
-                <div class="font-mono-premium">
-                    <p class="text-[10px] text-slate-400 font-bold uppercase">Active Nodes</p>
-                    <p class="text-lg font-bold text-slate-900">4,129 Active</p>
-                </div>
-                <span class="h-8 w-px bg-slate-200"></span>
-                <div class="font-mono-premium">
-                    <p class="text-[10px] text-slate-400 font-bold uppercase">Regions</p>
-                    <p class="text-lg font-bold text-slate-900">14 Zones</p>
-                </div>
-            </div>
-        </header>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          
-            <div class="dash-card bg-white rounded-xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between theme-transition">
-                <div>
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">🎙️ Voice Automation Hub</h3>
-                        <span class="accent-tag text-[9px] font-mono-premium font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">GPT-4O REALTIME</span>
+        <div class="flex items-center space-x-3">
+            <div id="tier-badge" class="hidden sm:inline-block px-2.5 py-1 rounded-lg text-[9px] font-bold font-mono uppercase bg-slate-900 border border-slate-800 text-slate-400">Tier: Free</div>
+            <div id="credits-badge" class="px-2.5 py-1 rounded-lg text-[9px] font-bold font-mono uppercase bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">Tokens: --</div>
+            
+            <div class="relative">
+                <button onclick="toggleDropdown()" class="w-9 h-9 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-emerald-400 transition">
+                    <i class="fa-solid fa-user-astronaut"></i>
+                </button>
+                <div id="profile-dropdown" class="hidden absolute right-0 mt-3 w-60 bg-slate-950 border border-slate-900 rounded-2xl p-4 shadow-2xl z-50 space-y-3 font-mono text-xs">
+                    <div class="border-b border-slate-900 pb-2">
+                        <p class="text-[9px] text-slate-500 uppercase">Active Node ID</p>
+                        <p id="drop-node-id" class="text-slate-300 font-bold truncate">Loading...</p>
                     </div>
-                    <div class="space-y-1">
-                        <p class="text-3xl font-bold text-slate-900 tracking-tight font-mono-premium">4.892M</p>
-                        <p class="text-xs text-slate-500">Synchronized Token Allocation Stream</p>
-                    </div>
-                </div>
-                <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between text-[11px] font-mono-premium text-slate-400">
-                    <span>Lifetime Volume:</span>
-                    <span class="text-slate-700 font-semibold">12.5M tokens</span>
-                </div>
-            </div>
-
-            <div class="dash-card bg-white rounded-xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between theme-transition">
-                <div>
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">📉 Infrastructure FinOps</h3>
-                        <span class="accent-tag text-[9px] font-mono-premium font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">AWS AUTO-SCALE</span>
-                    </div>
-                    <div class="space-y-1">
-                        <p class="text-3xl font-bold text-slate-900 tracking-tight font-mono-premium">₹4,52,300</p>
-                        <p class="text-xs text-slate-500">Automated Cost Strategy Retained</p>
-                    </div>
-                </div>
-                <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between text-[11px] font-mono-premium text-slate-400">
-                    <span>Cluster Target:</span>
-                    <span class="text-slate-700 font-semibold">ASG-PROD</span>
-                </div>
-            </div>
-
-            <div class="dash-card bg-white rounded-xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between theme-transition sm:col-span-2 lg:col-span-1">
-                <div>
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">⚖️ Corporate Billing</h3>
-                        <span class="accent-tag text-[9px] font-mono-premium font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">TAX MATCHED</span>
-                    </div>
-                    <div class="space-y-1">
-                        <p class="text-3xl font-bold text-slate-900 tracking-tight font-mono-premium">142 <span class="text-xs font-normal text-slate-400">Units</span></p>
-                        <p class="text-xs text-slate-500">Corporate Audit Ledgers Dispatched</p>
-                    </div>
-                </div>
-                <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between text-[11px] font-mono-premium text-slate-400">
-                    <span>Gross Ledger Pipeline:</span>
-                    <span class="text-slate-700 font-semibold">₹89.45 Lakh</span>
+                    <button onclick="openHistory()" class="w-full text-left py-1.5 px-2 rounded-lg hover:bg-slate-900 text-slate-300 hover:text-emerald-400 transition flex items-center space-x-2">
+                        <i class="fa-solid fa-clock-rotate-left"></i><span>Build History Vault</span>
+                    </button>
                 </div>
             </div>
         </div>
+    </header>
 
-        <div class="dash-card bg-white rounded-xl p-6 border border-slate-200 shadow-xs theme-transition">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800 mb-4">System Ingestion Traffic Stability Spectrum</h3>
-            <div class="w-full bg-slate-50 rounded-xl p-4 relative overflow-hidden border border-slate-200">
-                <svg viewBox="0 0 1000 130" class="w-full h-auto stroke-2 fill-none min-w-[500px]">
-                    <path id="graph-path" d="M0,90 Q120,50 240,40 T480,70 T720,20 T880,55 T1000,10" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
-                </svg>
+    <div class="lg:hidden bg-slate-900/60 border-b border-slate-800 p-2 flex justify-center space-x-4">
+        <button id="tab-btn-console" onclick="switchMobileTab('console')" class="px-4 py-1.5 text-xs font-bold font-mono bg-emerald-500 text-slate-950 rounded-xl shadow-lg">System Console</button>
+        <button id="tab-btn-preview" onclick="switchMobileTab('preview')" class="px-4 py-1.5 text-xs font-bold font-mono text-slate-400 bg-slate-950 border border-slate-800 rounded-xl">Live Application Mirror</button>
+    </div>
+
+    <main class="grid grid-cols-1 lg:grid-cols-12 h-[calc(100vh-73px)] w-full overflow-hidden">
+        <section id="pane-console" class="lg:col-span-5 border-r border-slate-900 p-4 lg:p-6 flex flex-col justify-between bg-slate-950 h-full">
+            <div class="flex-1 flex flex-col min-h-0 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-900 pb-2">
+                    <h3 class="text-xs font-bold font-mono text-slate-400 uppercase tracking-wider">Swarm Execution Logs</h3>
+                    <span id="socket-status-dot" class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                </div>
+                <div id="console-logs" class="flex-1 overflow-y-auto bg-black/30 border border-slate-900 rounded-2xl p-4 font-mono text-[11px] space-y-2">
+                    <div class="text-slate-500">Pipeline Online. Input application descriptions, codes or forms below...</div>
+                </div>
+            </div>
+
+            <div class="mt-4 space-y-3">
+                <textarea id="task-input" rows="3" class="w-full bg-slate-900/40 border border-slate-800 focus:border-emerald-500/40 rounded-xl p-3 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none transition resize-none" placeholder="Paste source code layout, forms, or custom system ideas here..."></textarea>
+                <button onclick="triggerSwarmBuild()" class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black font-mono text-xs tracking-wider uppercase rounded-xl transition transform active:scale-[0.99] flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-bolt"></i><span>Compile & Build Safe Web-App</span>
+                </button>
+            </div>
+        </section>
+
+        <section id="pane-preview" class="hidden lg:col-span-7 bg-slate-950 p-4 lg:p-6 lg:flex flex-col space-y-4 h-full">
+            <div class="flex items-center justify-between border-b border-slate-900 pb-2">
+                <h3 class="text-xs font-bold font-mono text-slate-400 uppercase tracking-wider">Live Sandbox Application Stream</h3>
+                <div class="flex items-center space-x-2">
+                    <button id="production-deploy-trigger" onclick="executeKrakenProductionDeploy()" disabled class="px-3 py-1 bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed font-mono font-bold text-[10px] uppercase rounded-lg transition duration-150 flex items-center space-x-1.5">
+                        <i class="fa-solid fa-cloud-arrow-up text-xs"></i><span>Deploy App</span>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 w-full bg-slate-900/10 border border-slate-900 rounded-2xl overflow-hidden relative shadow-inner">
+                <div id="lazy-render-trigger-placeholder" class="absolute inset-0 bg-slate-950/90 z-10 flex flex-col items-center justify-center p-4 text-center space-y-4 font-mono">
+                    <div class="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center animate-pulse border border-emerald-500/20">
+                        <i class="fa-solid fa-circle-play text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-200">Application Compilation Successful!</p>
+                        <p class="text-[10px] text-slate-500 mt-1">Ready to boot securely inside isolated workspace mirror context.</p>
+                    </div>
+                    <button onclick="manuallyUnfreezeLazyRender()" class="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-xs uppercase rounded-xl shadow-lg tracking-wider transition transform active:scale-95 flex items-center space-x-2">
+                        <i class="fa-solid fa-play"></i><span>Live Run Application</span>
+                    </button>
+                </div>
+                <iframe id="sandbox-mirror" class="w-full h-full border-none bg-white" sandbox="allow-scripts allow-modals allow-forms allow-same-origin"></iframe>
+            </div>
+        </section>
+    </main>
+
+    <div id="activation-gate-modal" class="hidden fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-xl bg-slate-950 border border-slate-900 rounded-3xl p-6 shadow-2xl font-mono text-xs space-y-6">
+            <div id="gate-stage-email" class="space-y-4">
+                <div class="text-center space-y-1">
+                    <h3 class="text-sm font-bold text-emerald-400 uppercase tracking-wider">Verify Identity Node Pipeline</h3>
+                    <p class="text-slate-500 text-[11px]">Free session pool exceeded. Map a valid developer email node.</p>
+                </div>
+                <div class="space-y-2">
+                    <input type="email" id="gate-email-field" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-center text-slate-200 focus:border-emerald-500/50 focus:outline-none" placeholder="developer@workspace.com">
+                    <div id="gate-error-box" class="hidden text-rose-400 text-[10px] text-center font-bold"></div>
+                    <button onclick="processGateEmail()" class="w-full py-3 bg-emerald-500 text-slate-950 font-bold uppercase rounded-xl tracking-wider transition">Authenticate Node Identity</button>
+                </div>
+            </div>
+
+            <div id="gate-stage-plans" class="hidden space-y-4">
+                <div class="text-center">
+                    <h3 class="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-amber-400 uppercase tracking-wider">Select Node Allocation Refill</h3>
+                </div>
+                <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
+                    <button id="btn-tab-monthly" onclick="togglePlanTab('monthly')" class="flex-1 py-1.5 text-center font-bold text-[11px] bg-slate-950 text-emerald-400 rounded-lg shadow">Subscriptions</button>
+                    <button id="btn-tab-token" onclick="togglePlanTab('token')" class="flex-1 py-1.5 text-center font-bold text-[11px] text-slate-400 rounded-lg">Pay-As-You-Go</button>
+                </div>
+                <div id="box-monthly-plans" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div onclick="selectProductTier('lite')" class="border border-slate-900 bg-slate-900/20 p-3 rounded-xl cursor-pointer hover:border-slate-800 transition">
+                        <p class="font-bold text-slate-300">Lite Quota</p>
+                        <div class="text-md font-bold mt-2 text-emerald-400 text-right" id="price-lbl-lite">--</div>
+                    </div>
+                    <div onclick="selectProductTier('infinite')" class="border-2 border-emerald-500/40 bg-emerald-500/5 p-3 rounded-xl cursor-pointer transition">
+                        <p class="font-bold text-slate-200">Dev Infinite</p>
+                        <div class="text-md font-bold mt-2 text-emerald-400 text-right" id="price-lbl-infinite">--</div>
+                    </div>
+                    <div onclick="selectProductTier('enterprise')" class="border border-slate-900 bg-slate-900/20 p-3 rounded-xl cursor-pointer hover:border-slate-800 transition">
+                        <p class="font-bold text-slate-300">Enterprise</p>
+                        <div class="text-md font-bold mt-2 text-emerald-400 text-right" id="price-lbl-enterprise">--</div>
+                    </div>
+                </div>
+                <div id="box-token-plans" class="hidden">
+                    <div onclick="selectProductTier('token_refill')" class="border border-amber-500/40 bg-amber-500/5 p-4 rounded-xl cursor-pointer transition flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-amber-400">Casual Credit Stack</p>
+                        </div>
+                        <div class="text-lg font-bold text-amber-400" id="price-lbl-token">--</div>
+                    </div>
+                </div>
+                <div id="payment-gateway-wrapper" class="hidden bg-slate-900/60 border border-slate-900 p-4 rounded-2xl text-center space-y-3">
+                    <div id="gateway-inr-upi" class="hidden space-y-2">
+                        <div id="upi-dynamic-qr-container" class="w-32 h-32 bg-white mx-auto rounded-xl flex items-center justify-center text-slate-950 font-black border-4 border-slate-950 overflow-hidden">
+                            <span class="text-[10px] text-slate-400">Generating...</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-1">Scan using any UPI App to process real-time activation</p>
+                    </div>
+                    <div id="gateway-global-stripe" class="hidden py-2">
+                        <button onclick="alert('Stripe 3DS Checkout Route Active')" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold uppercase rounded-xl text-white transition shadow-xl">Pay via Stripe Gateway</button>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
 
-        <div class="dash-card bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs theme-transition">
-            <div class="w-full overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs min-w-[600px]">
-                    <thead>
-                        <tr class="border-b border-slate-200 bg-slate-50/70 text-slate-500 font-mono-premium">
-                            <th class="p-4 font-semibold uppercase">Transaction Identity Token</th>
-                            <th class="p-4 font-semibold uppercase">Operational Process Name</th>
-                            <th class="p-4 font-semibold uppercase">Tax Allocation Framework</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 text-slate-700 font-mono-premium">
-                        <tr>
-                            <td class="p-4 text-slate-400">tx_premium_89431</td>
-                            <td class="p-4 font-sans text-slate-900 font-semibold">VOICE_AUTOMATION_PROD_INIT</td>
-                            <td class="p-4 text-slate-600">LUXURY_EXPORT_EXEMPT</td>
-                        </tr>
-                    </tbody>
-                </table>
+    <div id="history-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-xl bg-slate-950 border border-slate-900 rounded-2xl p-5 shadow-2xl font-mono text-xs space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-900 pb-2">
+                <span class="font-bold uppercase tracking-wider text-emerald-400"><i class="fa-solid fa-folder-open mr-2"></i>Secure Cloud Build Vault</span>
+                <button onclick="closeHistory()" class="text-slate-500 hover:text-rose-400"><i class="fa-solid fa-xmark"></i></button>
             </div>
+            <div id="history-rows-container" class="h-60 overflow-y-auto space-y-2"></div>
         </div>
-
     </div>
 
     <script>
-        // Realtime Theme Presets Engine
-        function applyPreset(theme) {
-            const body = document.getElementById('main-body');
-            const dashContainer = document.getElementById('dashboard-container');
-            const allCards = document.querySelectorAll('.dash-card, #dash-card-header');
-            const allText = document.querySelectorAll('#title-text, #desc-text, .text-slate-900, p');
-            const graphPath = document.getElementById('graph-path');
-            const tags = document.querySelectorAll('.accent-tag');
+        let sessionNodeId = localStorage.getItem("kraken_session_node") || ("node_" + Math.random().toString(36).substring(2, 13));
+        localStorage.setItem("kraken_session_node", sessionNodeId);
 
-            if (theme === 'clean') {
-                body.className = "bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col md:flex-row";
-                dashContainer.className = "flex-grow p-6 sm:p-10 space-y-6 overflow-y-auto theme-transition";
-                graphPath.setAttribute('stroke', '#0f172a');
-                allCards.forEach(c => {
-                    c.style.backgroundColor = '#ffffff';
-                    c.style.borderColor = '#e2e8f0';
-                });
-                tags.forEach(t => { t.className = "accent-tag text-[9px] font-mono-premium font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded"; });
-            } 
-            else if (theme === 'luxury') {
-                body.className = "bg-[#faf6f0] text-amber-950 antialiased min-h-screen flex flex-col md:flex-row";
-                dashContainer.className = "flex-grow p-6 sm:p-10 space-y-6 overflow-y-auto theme-transition bg-gradient-to-br from-amber-50/20 via-transparent to-transparent";
-                graphPath.setAttribute('stroke', '#b45309');
-                allCards.forEach(c => {
-                    c.style.backgroundColor = '#ffffff';
-                    c.style.borderColor = '#fcd34d';
-                });
-                tags.forEach(t => { t.className = "accent-tag text-[9px] font-mono-premium font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded"; });
-            } 
-            else if (theme === 'dark-neon') {
-                body.className = "bg-[#090d16] text-slate-100 antialiased min-h-screen flex flex-col md:flex-row";
-                dashContainer.className = "flex-grow p-6 sm:p-10 space-y-6 overflow-y-auto theme-transition";
-                graphPath.setAttribute('stroke', '#6366f1');
-                allCards.forEach(c => {
-                    c.style.backgroundColor = '#111827';
-                    c.style.borderColor = '#1f2937';
-                });
-                tags.forEach(t => { t.className = "accent-tag text-[9px] font-mono-premium font-bold text-indigo-400 bg-indigo-950/50 border border-indigo-900 px-2 py-0.5 rounded"; });
+        let socket;
+        const wsProto = window.location.protocol === "https:" ? "wss://" : "ws://";
+        
+        // 🌟 FIXED: Kept dynamic location host matching to handle deployment environments correctly
+        const wsUrl = wsProto + window.location.host + "/ws/v1/swarm-orchestrator/" + sessionNodeId;
+        let geoPricingMatrix = null;
+        let lastReceivedOutput = "";
+
+        function connectWebSocket() {
+            const statusDot = document.getElementById("socket-status-dot");
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = function() {
+                statusDot.className = "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse";
+                appendSystemLog("System Console", "Secure pipeline handshake established successfully.");
+            };
+
+            socket.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.tier) document.getElementById("tier-badge").innerText = "Tier: " + data.tier;
+                    if (data.tokens_left !== undefined) document.getElementById("credits-badge").innerText = "Tokens: " + data.tokens_left;
+
+                    if (data.agent && data.log) {
+                        appendSystemLog(data.agent, data.log);
+
+                        if (data.log.includes("Activation Gate protocol initiated")) {
+                            document.getElementById("activation-gate-modal").classList.remove("hidden");
+                        }
+                    }
+
+                    if (data.result_data && data.result_data.status === "SUCCESS") {
+                        lastReceivedOutput = data.result_data.full_output;
+                        
+                        document.getElementById("lazy-render-trigger-placeholder").classList.add("hidden");
+                        const frame = document.getElementById("sandbox-mirror");
+                        const doc = frame.contentDocument || frame.contentWindow.document;
+                        doc.open(); 
+                        doc.write(lastReceivedOutput);
+                        doc.close();
+                        
+                        const dBtn = document.getElementById("production-deploy-trigger");
+                        dBtn.disabled = false;
+                        dBtn.className = "px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono font-bold text-[10px] uppercase rounded-lg transition duration-150 flex items-center space-x-1.5 shadow-md shadow-emerald-500/20 cursor-pointer animate-pulse";
+
+                        if (window.innerWidth < 1024) switchMobileTab('preview');
+                    }
+                } catch (err) {
+                    console.error("Error parsing socket stream payload:", err);
+                }
+            };
+
+            socket.onclose = function() {
+                statusDot.className = "w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse";
+                appendSystemLog("System Terminal", "Pipeline closed. Attempting auto-reconnect in 4s...");
+                setTimeout(connectWebSocket, 4000);
+            };
+
+            socket.onerror = function() {
+                statusDot.className = "w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse";
+            };
+        }
+
+        function appendSystemLog(agent, text) {
+            const cBox = document.getElementById("console-logs");
+            if (!cBox) return;
+            const line = document.createElement("div");
+            line.innerHTML = `<span class="text-emerald-400 font-bold">[${agent}]:</span> <span class="text-slate-300">${text}</span>`;
+            cBox.appendChild(line); 
+            cBox.scrollTop = cBox.scrollHeight;
+        }
+
+        function switchMobileTab(target) {
+            const consolePane = document.getElementById("pane-console");
+            const previewPane = document.getElementById("pane-preview");
+            const btnConsole = document.getElementById("tab-btn-console");
+            const btnPreview = document.getElementById("tab-btn-preview");
+
+            if (target === "console") {
+                consolePane.classList.remove("hidden"); 
+                previewPane.classList.add("hidden");
+                if(window.innerWidth >= 1024) previewPane.classList.add("lg:flex");
+                btnConsole.className = "px-4 py-1.5 text-xs font-bold font-mono bg-emerald-500 text-slate-950 rounded-xl shadow-lg";
+                btnPreview.className = "px-4 py-1.5 text-xs font-bold font-mono text-slate-400 bg-slate-950 border border-slate-800 rounded-xl";
+            } else {
+                previewPane.classList.remove("hidden"); 
+                previewPane.classList.add("flex"); 
+                consolePane.classList.add("hidden");
+                if(window.innerWidth >= 1024) consolePane.classList.add("lg:flex");
+                btnPreview.className = "px-4 py-1.5 text-xs font-bold font-mono bg-emerald-500 text-slate-950 rounded-xl shadow-lg";
+                btnConsole.className = "px-4 py-1.5 text-xs font-bold font-mono text-slate-400 bg-slate-950 border border-slate-800 rounded-xl";
+                manuallyUnfreezeLazyRender();
             }
         }
 
-        // Realtime Radius Control
-        function changeRadius(size) {
-            const elements = document.querySelectorAll('.dash-card, #dash-card-header, #header-stat-box');
-            elements.forEach(el => {
-                el.classList.remove('rounded-none', 'rounded-md', 'rounded-xl', 'rounded-2xl');
-                if (size === 'none') el.classList.add('rounded-none');
-                if (size === 'md') el.classList.add('rounded-md');
-                if (size === 'xl') el.classList.add('rounded-xl');
+        fetch("/api/v1/geo-pricing")
+            .then(res => {
+                if (!res.ok) throw new Error("HTTP structural failure status");
+                return res.json();
+            })
+            .then(data => {
+                geoPricingMatrix = data;
+                const m = data.matrix;
+                document.getElementById("price-lbl-lite").innerText = m.symbol + m.lite;
+                document.getElementById("price-lbl-infinite").innerText = m.symbol + m.infinite;
+                document.getElementById("price-lbl-enterprise").innerText = m.symbol + m.enterprise;
+                document.getElementById("price-lbl-token").innerText = m.symbol + m.token_refill;
+            })
+            .catch(err => {
+                console.error("Geo-pricing metrics fetch failed:", err);
+                document.getElementById("price-lbl-lite").innerText = "$9.00";
+                document.getElementById("price-lbl-infinite").innerText = "$29.00";
+                document.getElementById("price-lbl-enterprise").innerText = "$199.00";
+                document.getElementById("price-lbl-token").innerText = "$5.00";
+            });
+
+        function manuallyUnfreezeLazyRender() {
+            if (!lastReceivedOutput) return;
+            document.getElementById("lazy-render-trigger-placeholder").classList.add("hidden");
+            const frame = document.getElementById("sandbox-mirror");
+            const doc = frame.contentDocument || frame.contentWindow.document;
+            doc.open(); doc.write(lastReceivedOutput); doc.close();
+        }
+
+        function executeKrakenProductionDeploy() {
+            if (!lastReceivedOutput) {
+                alert("Error: No live website stream loaded to build.");
+                return;
+            }
+            try {
+                const link = document.createElement('a');
+                const fileBlob = new Blob([lastReceivedOutput], { type: 'text/html' });
+                link.href = URL.createObjectURL(fileBlob);
+                link.download = `kraken_live_build_${Math.floor(Date.now() / 1000)}.html`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                appendSystemLog("Kraken Build Engine", "🚀 SUCCESS: Live target website bundled and active for real-world production path setup!");
+            } catch (err) {
+                alert("Compilation export failure: " + err.message);
+            }
+        }
+
+        function triggerSwarmBuild() {
+            const inp = document.getElementById("task-input");
+            if (!inp || !inp.value.trim()) return;
+            
+            const dBtn = document.getElementById("production-deploy-trigger");
+            dBtn.disabled = true;
+            dBtn.className = "px-3 py-1 bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed font-mono font-bold text-[10px] uppercase rounded-lg transition duration-150 flex items-center space-x-1.5";
+            
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ task: inp.value.trim(), blueprint_approved: true }));
+            } else {
+                alert("Connection pipeline currently offline. Retrying link...");
+            }
+        }
+
+        function processGateEmail() {
+            const mail = document.getElementById("gate-email-field").value.trim();
+            const errBox = document.getElementById("gate-error-box");
+            errBox.classList.add("hidden");
+
+            fetch("/api/v1/activate-node", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    session_id: sessionNodeId, 
+                    email: mail, 
+                    browser_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone 
+                })
+            })
+            .then(res => {
+                if (!res.ok) return res.json().then(err => { throw new Error(err.detail || "Authentication broken") });
+                return res.json();
+            })
+            .then(data => {
+                if (data.status === "SUCCESS") {
+                    document.getElementById("gate-stage-email").classList.add("hidden");
+                    document.getElementById("gate-stage-plans").classList.remove("hidden");
+                }
+            })
+            .catch(err => {
+                errBox.innerText = err.message; errBox.classList.remove("hidden");
             });
         }
 
-        // Live Accent Injector
-        function changeAccent(color, name) {
-            const graphPath = document.getElementById('graph-path');
-            graphPath.setAttribute('stroke', color);
-            
-            const tags = document.querySelectorAll('.accent-tag');
-            tags.forEach(t => {
-                t.style.borderColor = color;
-                t.style.color = color;
-            });
+        function togglePlanTab(target) {
+            const mBox = document.getElementById("box-monthly-plans");
+            const tBox = document.getElementById("box-token-plans");
+            const btnM = document.getElementById("btn-tab-monthly");
+            const btnT = document.getElementById("btn-tab-token");
+
+            if (target === "monthly") {
+                mBox.classList.remove("hidden"); tBox.classList.add("hidden");
+                btnM.className = "flex-1 py-1.5 text-center font-bold text-[11px] bg-slate-950 text-emerald-400 rounded-lg shadow";
+                btnT.className = "flex-1 py-1.5 text-center font-bold text-[11px] text-slate-400 rounded-lg";
+            } else {
+                tBox.classList.remove("hidden"); mBox.classList.add("hidden");
+                btnT.className = "flex-1 py-1.5 text-center font-bold text-[11px] bg-slate-950 text-amber-400 rounded-lg shadow";
+                btnM.className = "flex-1 py-1.5 text-center font-bold text-[11px] text-slate-400 rounded-lg";
+            }
         }
+
+        function selectProductTier(tierKey) {
+            document.getElementById("payment-gateway-wrapper").classList.remove("hidden");
+            const wrapperINR = document.getElementById("gateway-inr-upi");
+            const wrapperGlobal = document.getElementById("gateway-global-stripe");
+            const qrContainer = document.getElementById("upi-dynamic-qr-container");
+
+            let useINR = geoPricingMatrix && geoPricingMatrix.country === "IN";
+            if (useINR) {
+                wrapperINR.classList.remove("hidden"); 
+                wrapperGlobal.classList.add("hidden");
+                
+                let finalAmt = geoPricingMatrix.matrix[tierKey] || "299";
+                // 🌟 FIXED: Passed right dynamic tier and amount properties to dynamic backend image stream directly
+                qrContainer.innerHTML = `<img src="/api/v1/generate-qr?tier=${tierKey}&amount=${finalAmt}" class="w-full h-full object-cover" alt="UPI Core Gateway API Node">`;
+            } else {
+                wrapperGlobal.classList.remove("hidden"); 
+                wrapperINR.classList.add("hidden");
+            }
+        }
+
+        function toggleDropdown() {
+            const drop = document.getElementById("profile-dropdown");
+            drop.classList.toggle("hidden");
+            document.getElementById("drop-node-id").innerText = sessionNodeId;
+        }
+
+        function openHistory() {
+            document.getElementById("profile-dropdown").classList.add("hidden");
+            const modal = document.getElementById("history-modal");
+            modal.classList.remove("hidden");
+
+            fetch(`/api/v1/history/${sessionNodeId}`)
+                .then(res => res.json())
+                .then(data => {
+                    const box = document.getElementById("history-rows-container");
+                    box.innerHTML = "";
+                    if (!data.history || data.history.length === 0) {
+                        box.innerHTML = `<div class="text-slate-600 py-4 text-center">No build records discovered.</div>`;
+                        return;
+                    }
+                    data.history.forEach((h) => {
+                        const row = document.createElement("div");
+                        row.className = "p-2 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center cursor-pointer mb-2";
+                        row.innerHTML = `<p class="text-slate-200 truncate max-w-xs">"${h.task}"</p><span class="text-[9px] text-emerald-400 uppercase font-black">Restore</span>`;
+                        row.onclick = function() {
+                            lastReceivedOutput = h.code;
+                            
+                            const frame = document.getElementById("sandbox-mirror");
+                            const doc = frame.contentDocument || frame.contentWindow.document;
+                            doc.open(); doc.write(lastReceivedOutput); doc.close();
+                            
+                            document.getElementById("lazy-render-trigger-placeholder").classList.add("hidden");
+                            modal.classList.add("hidden");
+                            
+                            const dBtn = document.getElementById("production-deploy-trigger");
+                            dBtn.disabled = false;
+                            dBtn.className = "px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono font-bold text-[10px] uppercase rounded-lg transition duration-150 flex items-center space-x-1.5 shadow-md shadow-emerald-500/20 cursor-pointer";
+                        };
+                        box.appendChild(row);
+                    });
+                })
+                .catch(err => {
+                     document.getElementById("history-rows-container").innerHTML = `<div class="text-rose-400 py-4 text-center">Vault communication failed.</div>`;
+                });
+        }
+        function closeHistory() { document.getElementById("history-modal").classList.add("hidden"); }
+
+        connectWebSocket();
     </script>
 </body>
 </html>
