@@ -3,256 +3,505 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Omniverse Infinite Design Engine & Console</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Kraken Swarm Cluster - Enterprise Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .font-mono-premium {
-            font-family: 'JetBrains Mono', monospace;
-        }
-        .theme-transition {
-            transition: all 0.3s ease-in-out;
-        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        .agent-pulse { animation: agent-blink 1.5s infinite ease-in-out; }
+        @keyframes agent-blink { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
     </style>
 </head>
-<body id="main-body" class="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col md:flex-row">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-emerald-500 selection:text-slate-950 flex flex-col overflow-hidden">
 
-    <aside class="w-full md:w-80 bg-white border-b md:border-b-0 md:border-r border-slate-200 p-6 flex flex-col justify-between sticky top-0 md:h-screen z-50 overflow-y-auto">
-        <div class="space-y-6">
+    <header class="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-6 py-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-slate-950 text-lg font-black shadow-lg">
+                <i class="fa-solid fa-ghost"></i>
+            </div>
             <div>
-                <div class="flex items-center space-x-2">
-                    <span class="text-xl">🛠️</span>
-                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800">Design Studio Panel</h2>
-                </div>
-                <p class="text-[11px] text-slate-500 mt-1">Bina code badle screen par hi live look and feel design karo.</p>
-            </div>
-
-            <div class="space-y-2.5">
-                <label class="text-[10px] font-mono-premium font-bold tracking-wider text-slate-400 uppercase">1-Click Look Presets</label>
-                <div class="grid grid-cols-1 gap-2">
-                    <button onclick="applyPreset('clean')" class="w-full text-left text-xs font-semibold px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100 transition flex items-center justify-between cursor-pointer">
-                        <span>⚪ Minimalist Corporate Light</span>
-                        <span class="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Stripe Style</span>
-                    </button>
-                    <button onclick="applyPreset('luxury')" class="w-full text-left text-xs font-semibold px-3 py-2.5 rounded-lg border border-amber-200 bg-amber-50/40 text-amber-950 hover:bg-amber-50 transition flex items-center justify-between cursor-pointer">
-                        <span>👑 Ultra Luxury Executive Gold</span>
-                        <span class="text-[9px] bg-amber-200/60 text-amber-800 px-1.5 py-0.5 rounded">Premium</span>
-                    </button>
-                    <button onclick="applyPreset('dark-neon')" class="w-full text-left text-xs font-semibold px-3 py-2.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-100 hover:bg-slate-850 transition flex items-center justify-between cursor-pointer">
-                        <span>⚫ Pro Cyber Dark Neon</span>
-                        <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded">Vercel Vibe</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="space-y-4 pt-4 border-t border-slate-100">
-                <label class="text-[10px] font-mono-premium font-bold tracking-wider text-slate-400 uppercase">Manual Live Tuning</label>
-                
-                <div class="space-y-1.5">
-                    <span class="text-xs font-medium text-slate-700 flex justify-between">
-                        <span>Component Roundness</span>
-                    </span>
-                    <div class="flex gap-1.5">
-                        <button onclick="changeRadius('none')" class="text-[10px] bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-sm font-mono-premium cursor-pointer">0px</button>
-                        <button onclick="changeRadius('md')" class="text-[10px] bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-md font-mono-premium cursor-pointer">6px</button>
-                        <button onclick="changeRadius('xl')" class="text-[10px] bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg font-mono-premium cursor-pointer">12px</button>
-                    </div>
-                </div>
-
-                <div class="space-y-1.5">
-                    <span class="text-xs font-medium text-slate-700">Dynamic Highlight Injector</span>
-                    <div class="flex items-center gap-2">
-                        <button onclick="changeAccent('#0f172a', 'slate')" class="h-6 w-6 rounded-full bg-slate-900 border border-slate-300 cursor-pointer" title="Slate"></button>
-                        <button onclick="changeAccent('#b45309', 'amber')" class="h-6 w-6 rounded-full bg-amber-600 border border-slate-300 cursor-pointer" title="Gold"></button>
-                        <button onclick="changeAccent('#2563eb', 'blue')" class="h-6 w-6 rounded-full bg-blue-600 border border-slate-300 cursor-pointer" title="Tech Blue"></button>
-                        <button onclick="changeAccent('#10b981', 'emerald')" class="h-6 w-6 rounded-full bg-emerald-500 border border-slate-300 cursor-pointer" title="Live Green"></button>
-                    </div>
-                </div>
+                <h1 class="text-sm font-black tracking-wider uppercase text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-emerald-400">Kraken Matrix</h1>
+                <p class="text-[9px] text-slate-500 font-mono tracking-widest uppercase">Global Swarm Suite</p>
             </div>
         </div>
-
-        <div class="text-[10px] font-mono-premium text-slate-400 mt-6 pt-4 border-t border-slate-100">
-            Engine Mode: Live Variable Styler
-        </div>
-    </aside>
-
-    <div id="dashboard-container" class="flex-grow p-6 sm:p-10 space-y-6 overflow-y-auto theme-transition">
         
-        <header id="dash-card-header" class="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4 theme-transition">
-            <div>
-                <p id="sub-title-text" class="text-[10px] font-mono-premium tracking-widest text-slate-400 uppercase font-bold">High-Revenue SaaS Matrix Pipeline</p>
-                <h2 id="title-text" class="text-2xl font-bold tracking-tight text-slate-900 mt-0.5">Executive Operational Portfolio</h2>
-                <p id="desc-text" class="text-slate-500 text-sm max-w-2xl mt-1 leading-relaxed">
-                    Real-time cloud asset telemetry, multi-tenant resource architecture, and optimized financial pipelines running live metrics.
-                </p>
-            </div>
-            <div id="header-stat-box" class="bg-slate-50 border border-slate-200 p-3 rounded-lg flex items-center space-x-4 w-full md:w-auto theme-transition">
-                <div class="font-mono-premium">
-                    <p class="text-[10px] text-slate-400 font-bold uppercase">Active Nodes</p>
-                    <p class="text-lg font-bold text-slate-900">4,129 Active</p>
-                </div>
-                <span class="h-8 w-px bg-slate-200"></span>
-                <div class="font-mono-premium">
-                    <p class="text-[10px] text-slate-400 font-bold uppercase">Regions</p>
-                    <p class="text-lg font-bold text-slate-900">14 Zones</p>
-                </div>
-            </div>
-        </header>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          
-            <div class="dash-card bg-white rounded-xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between theme-transition">
-                <div>
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">🎙️ Voice Automation Hub</h3>
-                        <span class="accent-tag text-[9px] font-mono-premium font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">GPT-4O REALTIME</span>
+        <div class="flex items-center space-x-3">
+            <div id="tier-badge" class="hidden sm:inline-block px-2.5 py-1 rounded border border-slate-800 bg-slate-900/50 text-[9px] font-mono font-bold uppercase text-slate-400">Tier: Free Pool</div>
+            <div id="credits-badge" class="px-2.5 py-1 rounded border border-emerald-500/20 bg-emerald-500/10 text-[9px] font-mono font-bold uppercase text-emerald-400">Tokens: --</div>
+            
+            <div class="relative">
+                <button id="profile-btn" onclick="toggleDropdown(event)" class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-emerald-400 transition text-sm shadow-md">
+                    <i class="fa-solid fa-user-astronaut"></i>
+                </button>
+                <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-slate-950 border border-slate-900 rounded-xl p-3 shadow-2xl z-50 space-y-2 font-mono text-[10px]">
+                    <div class="border-b border-slate-900 pb-1.5">
+                        <p class="text-[8px] text-slate-500 uppercase">Active Node ID</p>
+                        <p id="drop-node-id" class="text-slate-300 font-bold truncate">Loading...</p>
                     </div>
-                    <div class="space-y-1">
-                        <p class="text-3xl font-bold text-slate-900 tracking-tight font-mono-premium">4.892M</p>
-                        <p class="text-xs text-slate-500">Synchronized Token Allocation Stream</p>
-                    </div>
-                </div>
-                <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between text-[11px] font-mono-premium text-slate-400">
-                    <span>Lifetime Volume:</span>
-                    <span class="text-slate-700 font-semibold">12.5M tokens</span>
-                </div>
-            </div>
-
-            <div class="dash-card bg-white rounded-xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between theme-transition">
-                <div>
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">📉 Infrastructure FinOps</h3>
-                        <span class="accent-tag text-[9px] font-mono-premium font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">AWS AUTO-SCALE</span>
-                    </div>
-                    <div class="space-y-1">
-                        <p class="text-3xl font-bold text-slate-900 tracking-tight font-mono-premium">₹4,52,300</p>
-                        <p class="text-xs text-slate-500">Automated Cost Strategy Retained</p>
-                    </div>
-                </div>
-                <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between text-[11px] font-mono-premium text-slate-400">
-                    <span>Cluster Target:</span>
-                    <span class="text-slate-700 font-semibold">ASG-PROD</span>
-                </div>
-            </div>
-
-            <div class="dash-card bg-white rounded-xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between theme-transition sm:col-span-2 lg:col-span-1">
-                <div>
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">⚖️ Corporate Billing</h3>
-                        <span class="accent-tag text-[9px] font-mono-premium font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">TAX MATCHED</span>
-                    </div>
-                    <div class="space-y-1">
-                        <p class="text-3xl font-bold text-slate-900 tracking-tight font-mono-premium">142 <span class="text-xs font-normal text-slate-400">Units</span></p>
-                        <p class="text-xs text-slate-500">Corporate Audit Ledgers Dispatched</p>
-                    </div>
-                </div>
-                <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between text-[11px] font-mono-premium text-slate-400">
-                    <span>Gross Ledger Pipeline:</span>
-                    <span class="text-slate-700 font-semibold">₹89.45 Lakh</span>
+                    <button onclick="openHistory()" class="w-full text-left py-1 px-1.5 rounded hover:bg-slate-900 text-slate-300 hover:text-emerald-400 transition flex items-center space-x-2">
+                        <i class="fa-solid fa-clock-rotate-left"></i><span>Build History Vault</span>
+                    </button>
                 </div>
             </div>
         </div>
+    </header>
 
-        <div class="dash-card bg-white rounded-xl p-6 border border-slate-200 shadow-xs theme-transition">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800 mb-4">System Ingestion Traffic Stability Spectrum</h3>
-            <div class="w-full bg-slate-50 rounded-xl p-4 relative overflow-hidden border border-slate-200">
-                <svg viewBox="0 0 1000 130" class="w-full h-auto stroke-2 fill-none min-w-[500px]">
-                    <path id="graph-path" d="M0,90 Q120,50 240,40 T480,70 T720,20 T880,55 T1000,10" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
-                </svg>
+    <div class="lg:hidden bg-slate-900/60 border-b border-slate-800 p-2 flex justify-center space-x-2 shrink-0">
+        <button id="tab-btn-console" onclick="switchMobileTab('console')" class="px-3 py-1 text-[10px] font-bold font-mono bg-emerald-500 text-slate-950 rounded-md shadow">Console</button>
+        <button id="tab-btn-preview" onclick="switchMobileTab('preview')" class="px-3 py-1 text-[10px] font-bold font-mono text-slate-400 bg-slate-950 border border-slate-800 rounded-md">Live Sandbox Mirror</button>
+    </div>
+
+    <main class="grid grid-cols-1 lg:grid-cols-12 flex-1 w-full overflow-hidden">
+        
+        <section id="pane-console" class="lg:col-span-5 border-r border-slate-900 p-4 flex flex-col min-h-0 bg-slate-950">
+            <div class="flex-1 flex flex-col min-h-0 space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-900 pb-1.5 shrink-0">
+                    <div class="flex items-center space-x-2">
+                        <h3 class="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider">Swarm Execution Logs</h3>
+                        <div id="active-agent-badge" class="hidden px-1.5 py-0.5 rounded text-[8px] font-mono uppercase bg-teal-500/10 border border-teal-500/30 text-teal-400 agent-pulse flex items-center space-x-1">
+                            <span class="w-1 h-1 rounded-full bg-teal-400"></span>
+                            <span id="active-agent-name">Engine Idle</span>
+                        </div>
+                    </div>
+                    <span id="socket-status-dot" class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                </div>
+                
+                <div id="console-logs" class="flex-1 overflow-y-auto bg-black/20 border border-slate-900 rounded-xl p-3 font-mono text-[11px] space-y-2 min-h-0">
+                    <div class="text-slate-500">Pipeline Online. Input your complex task requirement or app deployment model below...</div>
+                </div>
+            </div>
+
+            <div class="mt-3 pt-2 border-t border-slate-900 flex flex-col space-y-2 shrink-0 bg-slate-950">
+                <textarea id="task-input" rows="3" class="w-full bg-slate-900/30 border border-slate-800 focus:border-emerald-500/40 p-3 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none transition resize-none rounded-xl" placeholder="Explain the complex app or autonomous task details you want to build..."></textarea>
+                
+                <div class="flex justify-end">
+                    <button onclick="initiateSwarmPipeline()" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold font-mono text-xs tracking-wider uppercase rounded-xl transition shadow flex items-center space-x-2">
+                        <i class="fa-solid fa-bolt text-[11px]"></i><span>Generate Blueprint Plan</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="pane-preview" class="hidden lg:col-span-7 bg-slate-950 flex-col min-h-0 h-full lg:flex">
+            
+            <div class="flex items-center justify-between border-b border-slate-900 px-4 py-2 shrink-0 bg-slate-950/90 backdrop-blur">
+                <div class="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800/80">
+                    <button id="view-mode-mirror" onclick="toggleSandboxView('mirror')" class="px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md bg-slate-950 text-emerald-400 shadow">Live Preview</button>
+                    <button id="view-mode-editor" onclick="toggleSandboxView('editor')" class="px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200">Quick Code Editor</button>
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <button id="production-deploy-trigger" onclick="executeKrakenProductionDeploy()" disabled class="px-4 py-1.5 bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed font-mono font-bold text-[10px] uppercase rounded-xl transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-cloud-arrow-up text-[10px]"></i><span>Deploy App</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex-1 w-full bg-slate-950 overflow-hidden relative min-h-0 p-0 m-0 border-0">
+                
+                <div id="blueprint-approval-placeholder" class="hidden absolute inset-0 bg-slate-950/95 z-20 flex flex-col items-center justify-center p-6 text-center space-y-4 font-mono">
+                    <div class="w-12 h-12 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                        <i class="fa-solid fa-map text-base"></i>
+                    </div>
+                    <div class="max-w-md space-y-2">
+                        <p class="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Architectural Plan Generated</p>
+                        <div id="blueprint-details-box" class="w-full text-left bg-black/40 border border-slate-900 p-3 rounded-xl max-h-36 overflow-y-auto text-[10px] text-slate-300 space-y-1">
+                        </div>
+                    </div>
+                    <button onclick="approveBlueprintAndBuild()" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold font-mono text-xs uppercase rounded-xl shadow transition flex items-center space-x-2">
+                        <i class="fa-solid fa-circle-check text-[11px]"></i><span>Approve & Launch Swarm</span>
+                    </button>
+                </div>
+
+                <div id="lazy-render-trigger-placeholder" class="absolute inset-0 bg-slate-950 z-10 flex flex-col items-center justify-center p-4 text-center space-y-3 font-mono">
+                    <div class="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                        <i class="fa-solid fa-terminal text-base"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400">Application Sandbox Standby</p>
+                        <p class="text-[10px] text-slate-600 mt-0.5">Submit configuration instructions inside terminal block matrix.</p>
+                    </div>
+                </div>
+                
+                <iframe id="sandbox-mirror" class="w-full h-full border-none bg-transparent m-0 p-0" sandbox="allow-scripts allow-modals allow-forms allow-same-origin"></iframe>
+                
+                <textarea id="sandbox-editor-panel" oninput="syncEditorToMirrorPreview()" class="hidden absolute inset-0 w-full h-full bg-slate-950 text-slate-300 font-mono text-xs p-4 focus:outline-none resize-none border-none m-0 rounded-none" placeholder=""></textarea>
+            </div>
+        </section>
+    </main>
+
+    <div id="activation-gate-modal" class="hidden fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-slate-950 border border-slate-900 rounded-2xl p-5 shadow-2xl font-mono text-[11px] space-y-4">
+            <div id="gate-stage-email" class="space-y-3">
+                <div class="text-center space-y-1">
+                    <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Verify Identity Node Pipeline</h3>
+                    <p class="text-slate-500 text-[10px]">Free session pool threshold triggered.</p>
+                </div>
+                <div class="space-y-2">
+                    <input type="email" id="gate-email-field" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-center text-slate-200 focus:border-emerald-500/50 focus:outline-none text-xs" placeholder="developer@workspace.com">
+                    <div id="gate-error-box" class="hidden text-rose-400 text-[9px] text-center font-bold"></div>
+                    <button onclick="processGateEmail()" class="w-full py-2 bg-emerald-500 text-slate-950 font-bold uppercase rounded-xl tracking-wider text-[10px]">Authenticate Node</button>
+                </div>
+            </div>
+
+            <div id="gate-stage-plans" class="hidden space-y-3">
+                <div class="text-center">
+                    <h3 class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Select Node Allocation Refill</h3>
+                </div>
+                <div class="flex bg-slate-900 p-0.5 rounded-lg border border-slate-800">
+                    <button id="btn-tab-monthly" onclick="togglePlanTab('monthly')" class="flex-1 py-1 text-center font-bold text-[10px] bg-slate-950 text-emerald-400 rounded-md shadow">Subscriptions</button>
+                    <button id="btn-tab-token" onclick="togglePlanTab('token')" class="flex-1 py-1 text-center font-bold text-[10px] text-slate-400 rounded-md">Pay-As-You-Go</button>
+                </div>
+                <div id="box-monthly-plans" class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div onclick="selectProductTier('lite')" class="border border-slate-900 bg-slate-900/20 p-2.5 rounded-xl cursor-pointer hover:border-slate-800 transition text-[10px]">
+                        <p class="font-bold text-slate-300">Lite</p>
+                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-lite">--</div>
+                    </div>
+                    <div onclick="selectProductTier('infinite')" class="border border-emerald-500/30 bg-emerald-500/5 p-2.5 rounded-xl cursor-pointer transition text-[10px]">
+                        <p class="font-bold text-slate-200">Infinite</p>
+                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-infinite">--</div>
+                    </div>
+                    <div onclick="selectProductTier('enterprise')" class="border border-slate-900 bg-slate-900/20 p-2.5 rounded-xl cursor-pointer hover:border-slate-800 transition text-[10px]">
+                        <p class="font-bold text-slate-300">Enterprise</p>
+                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-enterprise">--</div>
+                    </div>
+                </div>
+                <div id="box-token-plans" class="hidden">
+                    <div onclick="selectProductTier('token_refill')" class="border border-amber-500/30 bg-amber-500/5 p-3 rounded-xl cursor-pointer transition flex justify-between items-center text-[10px]">
+                        <p class="font-bold text-amber-400">Casual Credit Stack</p>
+                        <div class="text-sm font-bold text-amber-400" id="price-lbl-token">--</div>
+                    </div>
+                </div>
+                <div id="payment-gateway-wrapper" class="hidden bg-slate-900/60 border border-slate-900 p-3 rounded-xl text-center space-y-2">
+                    <div id="gateway-inr-upi" class="hidden space-y-2">
+                        <div id="upi-dynamic-qr-container" class="w-28 h-28 bg-white mx-auto rounded-lg flex items-center justify-center text-slate-950 font-black overflow-hidden">
+                            <span class="text-[9px] text-slate-400">Generating QR...</span>
+                        </div>
+                    </div>
+                    <div id="gateway-global-stripe" class="hidden py-1">
+                        <button onclick="alert('Stripe Gateway Loaded')" class="w-full py-2 bg-indigo-600 font-bold uppercase rounded-lg text-white text-[10px]">Pay via Stripe</button>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
 
-        <div class="dash-card bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs theme-transition">
-            <div class="w-full overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs min-w-[600px]">
-                    <thead>
-                        <tr class="border-b border-slate-200 bg-slate-50/70 text-slate-500 font-mono-premium">
-                            <th class="p-4 font-semibold uppercase">Transaction Identity Token</th>
-                            <th class="p-4 font-semibold uppercase">Operational Process Name</th>
-                            <th class="p-4 font-semibold uppercase">Tax Allocation Framework</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 text-slate-700 font-mono-premium">
-                        <tr>
-                            <td class="p-4 text-slate-400">tx_premium_89431</td>
-                            <td class="p-4 font-sans text-slate-900 font-semibold">VOICE_AUTOMATION_PROD_INIT</td>
-                            <td class="p-4 text-slate-600">LUXURY_EXPORT_EXEMPT</td>
-                        </tr>
-                    </tbody>
-                </table>
+    <div id="history-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-slate-950 border border-slate-900 rounded-xl p-4 shadow-2xl font-mono text-[11px] space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-900 pb-1.5">
+                <span class="font-bold uppercase tracking-wider text-emerald-400"><i class="fa-solid fa-folder-open mr-2"></i>Secure Cloud Build Vault</span>
+                <button onclick="closeHistory()" class="text-slate-500 hover:text-rose-400"><i class="fa-solid fa-xmark"></i></button>
             </div>
+            <div id="history-rows-container" class="h-52 overflow-y-auto space-y-2"></div>
         </div>
-
     </div>
 
     <script>
-        // Realtime Theme Presets Engine
-        function applyPreset(theme) {
-            const body = document.getElementById('main-body');
-            const dashContainer = document.getElementById('dashboard-container');
-            const allCards = document.querySelectorAll('.dash-card, #dash-card-header');
-            const allText = document.querySelectorAll('#title-text, #desc-text, .text-slate-900, p');
-            const graphPath = document.getElementById('graph-path');
-            const tags = document.querySelectorAll('.accent-tag');
+        let sessionNodeId = localStorage.getItem("kraken_session_node") || ("node_" + Math.random().toString(36).substring(2, 13));
+        localStorage.setItem("kraken_session_node", sessionNodeId);
 
-            if (theme === 'clean') {
-                body.className = "bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col md:flex-row";
-                dashContainer.className = "flex-grow p-6 sm:p-10 space-y-6 overflow-y-auto theme-transition";
-                graphPath.setAttribute('stroke', '#0f172a');
-                allCards.forEach(c => {
-                    c.style.backgroundColor = '#ffffff';
-                    c.style.borderColor = '#e2e8f0';
-                });
-                tags.forEach(t => { t.className = "accent-tag text-[9px] font-mono-premium font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded"; });
-            } 
-            else if (theme === 'luxury') {
-                body.className = "bg-[#faf6f0] text-amber-950 antialiased min-h-screen flex flex-col md:flex-row";
-                dashContainer.className = "flex-grow p-6 sm:p-10 space-y-6 overflow-y-auto theme-transition bg-gradient-to-br from-amber-50/20 via-transparent to-transparent";
-                graphPath.setAttribute('stroke', '#b45309');
-                allCards.forEach(c => {
-                    c.style.backgroundColor = '#ffffff';
-                    c.style.borderColor = '#fcd34d';
-                });
-                tags.forEach(t => { t.className = "accent-tag text-[9px] font-mono-premium font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded"; });
-            } 
-            else if (theme === 'dark-neon') {
-                body.className = "bg-[#090d16] text-slate-100 antialiased min-h-screen flex flex-col md:flex-row";
-                dashContainer.className = "flex-grow p-6 sm:p-10 space-y-6 overflow-y-auto theme-transition";
-                graphPath.setAttribute('stroke', '#6366f1');
-                allCards.forEach(c => {
-                    c.style.backgroundColor = '#111827';
-                    c.style.borderColor = '#1f2937';
-                });
-                tags.forEach(t => { t.className = "accent-tag text-[9px] font-mono-premium font-bold text-indigo-400 bg-indigo-950/50 border border-indigo-900 px-2 py-0.5 rounded"; });
+        let socket;
+        const wsProto = window.location.protocol === "https:" ? "wss://" : "ws://";
+        const wsUrl = wsProto + window.location.host + "/ws/v1/swarm-orchestrator/" + sessionNodeId;
+        
+        let geoPricingMatrix = null;
+        let lastReceivedOutput = "";
+        let currentPromptTask = "";
+        let reconnectAttempts = 0;
+        const maxReconnectDelay = 30000;
+
+        function connectWebSocket() {
+            const statusDot = document.getElementById("socket-status-dot");
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = function() {
+                reconnectAttempts = 0;
+                statusDot.className = "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse";
+                appendSystemLog("System Console", "Secure multi-agent network pipeline handshake established.");
+            };
+
+            socket.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.tier) document.getElementById("tier-badge").innerText = "Tier: " + data.tier;
+                    if (data.tokens_left !== undefined) document.getElementById("credits-badge").innerText = "Tokens: " + data.tokens_left;
+
+                    if (data.agent) {
+                        const badge = document.getElementById("active-agent-badge");
+                        const txt = document.getElementById("active-agent-name");
+                        badge.classList.remove("hidden");
+                        txt.innerText = data.agent;
+                        
+                        if (data.log) {
+                            appendSystemLog(data.agent, data.log);
+                            if (data.log.includes("Activation Gate protocol initiated")) {
+                                document.getElementById("activation-gate-modal").classList.remove("hidden");
+                            }
+                        }
+                    }
+
+                    if (data.blueprint_schema) {
+                        displayDynamicBlueprintModal(data.blueprint_schema);
+                    }
+
+                    if (data.result_data && data.result_data.status === "SUCCESS") {
+                        document.getElementById("active-agent-badge").classList.add("hidden");
+                        
+                        lastReceivedOutput = data.result_data.full_output;
+                        document.getElementById("lazy-render-trigger-placeholder").classList.add("hidden");
+                        document.getElementById("blueprint-approval-placeholder").classList.add("hidden");
+                        
+                        document.getElementById("sandbox-editor-panel").value = lastReceivedOutput;
+                        updateSandboxMirror(lastReceivedOutput);
+                        
+                        const dBtn = document.getElementById("production-deploy-trigger");
+                        dBtn.disabled = false;
+                        dBtn.className = "px-4 py-1.5 bg-slate-900 text-emerald-400 border border-emerald-500/30 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow cursor-pointer animate-pulse";
+
+                        if (window.innerWidth < 1024) switchMobileTab('preview');
+                    }
+                } catch (err) {
+                    console.error("Error parsing socket payload:", err);
+                }
+            };
+
+            socket.onclose = function() {
+                statusDot.className = "w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse";
+                document.getElementById("active-agent-badge").classList.add("hidden");
+                
+                reconnectAttempts++;
+                let currentDelay = Math.min(1000 * Math.pow(2, reconnectAttempts) + Math.random() * 1000, maxReconnectDelay);
+                setTimeout(connectWebSocket, currentDelay);
+            };
+        }
+
+        function appendSystemLog(agent, text) {
+            const cBox = document.getElementById("console-logs");
+            if (!cBox) return;
+            const line = document.createElement("div");
+            line.innerHTML = `<span class="text-emerald-400 font-bold">[${agent}]:</span> <span class="text-slate-300">${text}</span>`;
+            cBox.appendChild(line);
+            cBox.scrollTop = cBox.scrollHeight;
+        }
+
+        function initiateSwarmPipeline() {
+            const inp = document.getElementById("task-input");
+            if (!inp || !inp.value.trim()) return;
+            
+            currentPromptTask = inp.value.trim();
+            document.getElementById("lazy-render-trigger-placeholder").classList.remove("hidden");
+            document.getElementById("blueprint-approval-placeholder").classList.add("hidden");
+
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                appendSystemLog("Swarm Architect", "Analyzing instructions to compute blueprint roadmap...");
+                socket.send(JSON.stringify({ task: currentPromptTask, blueprint_approved: false }));
+                if (window.innerWidth < 1024) switchMobileTab('preview');
+            } else {
+                alert("Connection cluster offline.");
             }
         }
 
-        // Realtime Radius Control
-        function changeRadius(size) {
-            const elements = document.querySelectorAll('.dash-card, #dash-card-header, #header-stat-box');
-            elements.forEach(el => {
-                el.classList.remove('rounded-none', 'rounded-md', 'rounded-xl', 'rounded-2xl');
-                if (size === 'none') el.classList.add('rounded-none');
-                if (size === 'md') el.classList.add('rounded-md');
-                if (size === 'xl') el.classList.add('rounded-xl');
+        function displayDynamicBlueprintModal(schema) {
+            const container = document.getElementById("blueprint-details-box");
+            container.innerHTML = "";
+            document.getElementById("lazy-render-trigger-placeholder").classList.add("hidden");
+            document.getElementById("blueprint-approval-placeholder").classList.remove("hidden");
+            
+            if (schema.steps && schema.steps.length > 0) {
+                schema.steps.forEach((step, idx) => {
+                    const row = document.createElement("div");
+                    row.className = "py-0.5 border-b border-slate-900/40 last:border-none";
+                    row.innerHTML = `<span class="text-emerald-400 font-bold">${idx + 1}.</span> ${step.action}`;
+                    container.appendChild(row);
+                });
+            } else {
+                container.innerHTML = `<div class="text-slate-500 italic">Blueprint ready.</div>`;
+            }
+        }
+
+        function approveBlueprintAndBuild() {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                document.getElementById("blueprint-approval-placeholder").classList.add("hidden");
+                socket.send(JSON.stringify({ task: currentPromptTask, blueprint_approved: true }));
+            }
+        }
+
+        function updateSandboxMirror(rawCode) {
+            const frame = document.getElementById("sandbox-mirror");
+            const doc = frame.contentDocument || frame.contentWindow.document;
+            doc.open();
+            doc.write(rawCode);
+            doc.close();
+        }
+
+        function toggleSandboxView(mode) {
+            const mirrorFrame = document.getElementById("sandbox-mirror");
+            const editorTextarea = document.getElementById("sandbox-editor-panel");
+            const btnMirror = document.getElementById("view-mode-mirror");
+            const btnEditor = document.getElementById("view-mode-editor");
+
+            if (mode === 'mirror') {
+                mirrorFrame.classList.remove("hidden");
+                editorTextarea.classList.add("hidden");
+                btnMirror.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md bg-slate-950 text-emerald-400 shadow";
+                btnEditor.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200";
+            } else {
+                editorTextarea.classList.remove("hidden");
+                mirrorFrame.classList.add("hidden");
+                btnEditor.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md bg-slate-950 text-emerald-400 shadow";
+                btnMirror.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200";
+            }
+        }
+
+        function syncEditorToMirrorPreview() {
+            lastReceivedOutput = document.getElementById("sandbox-editor-panel").value;
+            updateSandboxMirror(lastReceivedOutput);
+        }
+
+        function executeKrakenProductionDeploy() {
+            if (!lastReceivedOutput) return;
+            try {
+                const link = document.createElement('a');
+                const fileBlob = new Blob([lastReceivedOutput], { type: 'text/html' });
+                link.href = URL.createObjectURL(fileBlob);
+                link.download = `kraken_build_${Math.floor(Date.now() / 1000)}.html`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (err) {
+                alert("Export module failure: " + err.message);
+            }
+        }
+
+        function switchMobileTab(target) {
+            const consolePane = document.getElementById("pane-console");
+            const previewPane = document.getElementById("pane-preview");
+            const btnConsole = document.getElementById("tab-btn-console");
+            const btnPreview = document.getElementById("tab-btn-preview");
+
+            if (target === "console") {
+                consolePane.classList.remove("hidden");
+                previewPane.classList.add("hidden");
+                if(window.innerWidth >= 1024) previewPane.classList.add("lg:flex");
+                btnConsole.className = "px-3 py-1 text-[10px] font-bold font-mono bg-emerald-500 text-slate-950 rounded-md shadow";
+                btnPreview.className = "px-3 py-1 text-[10px] font-bold font-mono text-slate-400 bg-slate-950 border border-slate-800 rounded-md";
+            } else {
+                previewPane.classList.remove("hidden");
+                previewPane.classList.add("flex");
+                consolePane.classList.add("hidden");
+                if(window.innerWidth >= 1024) consolePane.classList.add("lg:flex");
+                btnPreview.className = "px-3 py-1 text-[10px] font-bold font-mono bg-emerald-500 text-slate-950 rounded-md shadow";
+                btnConsole.className = "px-3 py-1 text-[10px] font-bold font-mono text-slate-400 bg-slate-950 border border-slate-800 rounded-md";
+            }
+        }
+
+        fetch("/api/v1/geo-pricing")
+            .then(res => res.json())
+            .then(data => {
+                geoPricingMatrix = data;
+                const m = data.matrix;
+                document.getElementById("price-lbl-lite").innerText = m.symbol + m.lite;
+                document.getElementById("price-lbl-infinite").innerText = m.symbol + m.infinite;
+                document.getElementById("price-lbl-enterprise").innerText = m.symbol + m.enterprise;
+                document.getElementById("price-lbl-token").innerText = m.symbol + m.token_refill;
+            })
+            .catch(() => {
+                document.getElementById("price-lbl-lite").innerText = "$9.00";
+                document.getElementById("price-lbl-infinite").innerText = "$29.00";
+                document.getElementById("price-lbl-enterprise").innerText = "$199.00";
+                document.getElementById("price-lbl-token").innerText = "$5.00";
+            });
+
+        function processGateEmail() {
+            const mail = document.getElementById("gate-email-field").value.trim();
+            fetch("/api/v1/activate-node", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ session_id: sessionNodeId, email: mail })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "SUCCESS") {
+                    document.getElementById("gate-stage-email").classList.add("hidden");
+                    document.getElementById("gate-stage-plans").classList.remove("hidden");
+                }
             });
         }
 
-        // Live Accent Injector
-        function changeAccent(color, name) {
-            const graphPath = document.getElementById('graph-path');
-            graphPath.setAttribute('stroke', color);
-            
-            const tags = document.querySelectorAll('.accent-tag');
-            tags.forEach(t => {
-                t.style.borderColor = color;
-                t.style.color = color;
-            });
+        function togglePlanTab(target) {
+            const mBox = document.getElementById("box-monthly-plans");
+            const tBox = document.getElementById("box-token-plans");
+            const btnM = document.getElementById("btn-tab-monthly");
+            const btnT = document.getElementById("btn-tab-token");
+
+            if (target === "monthly") {
+                mBox.classList.remove("hidden"); tBox.classList.add("hidden");
+                btnM.className = "flex-1 py-1 text-center font-bold text-[10px] bg-slate-950 text-emerald-400 rounded-md shadow";
+                btnT.className = "flex-1 py-1 text-center font-bold text-[10px] text-slate-400 rounded-md";
+            } else {
+                tBox.classList.remove("hidden"); mBox.classList.add("hidden");
+                btnT.className = "flex-1 py-1 text-center font-bold text-[10px] bg-slate-950 text-amber-400 rounded-md shadow";
+                btnM.className = "flex-1 py-1 text-center font-bold text-[10px] text-slate-400 rounded-md";
+            }
         }
+
+        function selectProductTier(tierKey) {
+            document.getElementById("payment-gateway-wrapper").classList.remove("hidden");
+            const wrapperINR = document.getElementById("gateway-inr-upi");
+            const wrapperGlobal = document.getElementById("gateway-global-stripe");
+            let useINR = geoPricingMatrix && geoPricingMatrix.country === "IN";
+            if (useINR) {
+                wrapperINR.classList.remove("hidden"); wrapperGlobal.classList.add("hidden");
+                let finalAmt = geoPricingMatrix.matrix[tierKey] || "299";
+                document.getElementById("upi-dynamic-qr-container").innerHTML = `<img src="/api/v1/generate-qr?tier=${tierKey}&amount=${finalAmt}" class="w-full h-full object-cover">`;
+            } else {
+                wrapperGlobal.classList.remove("hidden"); wrapperINR.classList.add("hidden");
+            }
+        }
+
+        function toggleDropdown(event) {
+            if (event) event.stopPropagation();
+            document.getElementById("profile-dropdown").classList.toggle("hidden");
+            document.getElementById("drop-node-id").innerText = sessionNodeId;
+        }
+
+        window.onclick = function() {
+            document.getElementById("profile-dropdown").classList.add("hidden");
+        };
+
+        function openHistory() {
+            const modal = document.getElementById("history-modal");
+            modal.classList.remove("hidden");
+            fetch(`/api/v1/history/${sessionNodeId}`)
+                .then(res => res.json())
+                .then(data => {
+                    const box = document.getElementById("history-rows-container");
+                    box.innerHTML = "";
+                    if (!data.history || data.history.length === 0) {
+                        box.innerHTML = `<div class="text-slate-600 py-3 text-center">No structural builds.</div>`;
+                        return;
+                    }
+                    data.history.forEach((h) => {
+                        const row = document.createElement("div");
+                        row.className = "p-2 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center cursor-pointer mb-2 text-[10px]";
+                        row.innerHTML = `<p class="text-slate-200 truncate max-w-xs">"${h.task}"</p><span class="text-emerald-400 font-bold">Restore</span>`;
+                        row.onclick = function() {
+                            lastReceivedOutput = h.code;
+                            document.getElementById("sandbox-editor-panel").value = lastReceivedOutput;
+                            updateSandboxMirror(lastReceivedOutput);
+                            document.getElementById("lazy-render-trigger-placeholder").classList.add("hidden");
+                            document.getElementById("blueprint-approval-placeholder").classList.add("hidden");
+                            modal.classList.add("hidden");
+                        };
+                        box.appendChild(row);
+                    });
+                });
+        }
+        function closeHistory() { document.getElementById("history-modal").classList.add("hidden"); }
+
+        connectWebSocket();
     </script>
 </body>
 </html>
