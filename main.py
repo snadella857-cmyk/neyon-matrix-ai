@@ -34,8 +34,8 @@ except ImportError:
 logger = logging.getLogger("kraken_swarm_production")
 logging.basicConfig(level=logging.INFO)
 
-# 🔌 ENVIRONMENT SETUP - Purani faulty Neon URL yahan se completely hata di hai
-DATABASE_URL = os.getenv("DATABASE_URL")
+# 🔌 ENVIRONMENT SETUP - Clean base configurations
+RAW_DB_URL = os.getenv("DATABASE_URL", "postgresql://kraken_user:kR4k3n_p4ss_99@ep-cool-snowflake-a5o3lz8e.us-east-2.aws.neon.tech/kraken_db")
 REDIS_URL = os.getenv("REDIS_URL", "redis://default:rEdIsPaSsWoRd99@redis-12345.c302.us-east-1-1.ec2.cloud.redislabs.com:12345")
 
 db_pool = None
@@ -93,8 +93,15 @@ async def initialize_db_tables():
 async def lifespan(app: FastAPI):
     global db_pool, redis_client, http_client
     
-    target_db_url = DATABASE_URL
-    
+    # Strictly clean connection string parsing to remove duplicate query parameters
+    target_db_url = RAW_DB_URL
+    if target_db_url:
+        if "?sslmode=" in target_db_url:
+            base_url = target_db_url.split("?")[0]
+            target_db_url = f"{base_url}?sslmode=require"
+        elif "localhost" not in target_db_url and "127.0.0.1" not in target_db_url:
+            target_db_url = f"{target_db_url}?sslmode=require"
+            
     # HTTP client init
     limits = httpx.Limits(max_keepalive_connections=50, max_connections=200)
     http_client = httpx.AsyncClient(limits=limits, timeout=30.0)
@@ -109,8 +116,6 @@ async def lifespan(app: FastAPI):
 
     # Wrapped database pool creation
     if target_db_url:
-        if "localhost" not in target_db_url and "127.0.0.1" not in target_db_url and "?" not in target_db_url:
-            target_db_url += "?sslmode=require"
         try:
             logger.info("🔄 Connecting to Remote database cluster...")
             db_pool = await asyncpg.create_pool(target_db_url, min_size=1, max_size=10, timeout=15.0)
@@ -401,8 +406,7 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                     current_credits = int(current_credits_val) if current_credits_val else 3000
                 else:
                     if db_pool:
-                        async with db_pool.acquire() as conn:
-                            current_credits = await conn.fetchval("SELECT credits FROM user_vault WHERE session_id = $1", session_id)
+                        current_credits = await conn.fetchval("SELECT credits FROM user_vault WHERE session_id = $1", session_id)
             except Exception:
                 current_credits = 3000
             
