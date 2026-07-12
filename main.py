@@ -34,8 +34,8 @@ except ImportError:
 logger = logging.getLogger("kraken_swarm_production")
 logging.basicConfig(level=logging.INFO)
 
-# 🔌 ENVIRONMENT SETUP
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://kraken_user:kR4k3n_p4ss_99@ep-cool-snowflake-a5o3lz8e.us-east-2.aws.neon.tech/kraken_db?sslmode=require")
+# 🔌 ENVIRONMENT SETUP - Purani faulty Neon URL yahan se completely hata di hai
+DATABASE_URL = os.getenv("DATABASE_URL")
 REDIS_URL = os.getenv("REDIS_URL", "redis://default:rEdIsPaSsWoRd99@redis-12345.c302.us-east-1-1.ec2.cloud.redislabs.com:12345")
 
 db_pool = None
@@ -94,8 +94,6 @@ async def lifespan(app: FastAPI):
     global db_pool, redis_client, http_client
     
     target_db_url = DATABASE_URL
-    if "localhost" not in target_db_url and "127.0.0.1" not in target_db_url and "?" not in target_db_url:
-        target_db_url += "?sslmode=require"
     
     # HTTP client init
     limits = httpx.Limits(max_keepalive_connections=50, max_connections=200)
@@ -109,15 +107,19 @@ async def lifespan(app: FastAPI):
     except Exception as ree:
         logger.error(f"❌ Redis connection failed setup: {ree}")
 
-    # Wrapped database pool creation to PREVENT Startup Failure (Status 3)
-    try:
-        logger.info("🔄 Connecting to Remote database cluster...")
-        db_pool = await asyncpg.create_pool(target_db_url, min_size=1, max_size=10, timeout=15.0)
-        logger.info("✅ Database connection pool initialized.")
-        # Trigger table creation in background without blocking startup
-        asyncio.create_task(initialize_db_tables())
-    except Exception as dbe:
-        logger.error(f"❌ CRITICAL DB CONNECTION DELAY: {dbe}. Application bypassing strict check to avoid crash.")
+    # Wrapped database pool creation
+    if target_db_url:
+        if "localhost" not in target_db_url and "127.0.0.1" not in target_db_url and "?" not in target_db_url:
+            target_db_url += "?sslmode=require"
+        try:
+            logger.info("🔄 Connecting to Remote database cluster...")
+            db_pool = await asyncpg.create_pool(target_db_url, min_size=1, max_size=10, timeout=15.0)
+            logger.info("✅ Database connection pool initialized.")
+            asyncio.create_task(initialize_db_tables())
+        except Exception as dbe:
+            logger.error(f"❌ CRITICAL DB CONNECTION DELAY: {dbe}. Application bypassing strict check to avoid crash.")
+    else:
+        logger.warning("⚠️ DATABASE_URL not provided. Running in DB-less/Bypass mode.")
     
     yield
     
@@ -175,7 +177,7 @@ async def generate_qr(tier: str, amount: str):
 @app.post("/api/v1/activate-node")
 async def activate_node(payload: ActivationPayload):
     if not db_pool:
-         raise HTTPException(status_code=503, detail="Database cluster currently initializing. Please try again.")
+         raise HTTPException(status_code=503, detail="Database cluster currently initializing or unavailable. Please try again.")
     email = payload.email.lower().strip()
     domain = email.split("@")[-1] if "@" in email else ""
     if domain in DISPOSABLE_DOMAINS or not re.match(r"[^@]+@[^@]+\.[^@]+", email):
@@ -195,7 +197,7 @@ async def activate_node(payload: ActivationPayload):
         if redis_client:
             await redis_client.set(f"user:{payload.session_id}:credits", 3000, ex=3600)
     except Exception as dbe:
-        logger.error(f"Error executing db transaction in activate_node: {e}")
+        logger.error(f"Error executing db transaction in activate_node: {dbe}")
         raise HTTPException(status_code=500, detail="Internal server transaction state error.")
         
     return {"status": "SUCCESS", "message": "Node authenticated successfully."}
@@ -203,7 +205,7 @@ async def activate_node(payload: ActivationPayload):
 @app.post("/api/v1/apply-recharge")
 async def apply_recharge(session_id: str, plan_chosen: str):
     if not db_pool:
-         raise HTTPException(status_code=503, detail="Database cluster initializing.")
+         raise HTTPException(status_code=503, detail="Database cluster initializing or unavailable.")
     if plan_chosen not in PLAN_TOKENS_ALLOCATION:
         raise HTTPException(status_code=400, detail="❌ Invalid plan specified.")
     tokens_to_add = PLAN_TOKENS_ALLOCATION[plan_chosen]
@@ -235,7 +237,7 @@ async def get_history(session_id: str):
             pass
             
     if not db_pool:
-         return {"tier": "free", "credits_left": 3000, "history": [], "warning": "DB Syncing"}
+         return {"tier": "free", "credits_left": 3000, "history": [], "warning": "DB Syncing/Unavailable"}
          
     try:
         async with db_pool.acquire() as conn:
@@ -504,7 +506,7 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
     except Exception as e:
         logger.error(f"❌ Swarm Pipeline Edge Exception caught: {str(e)}")
 
-# --- 🚀 PORT INTEGRITY SYSTEM (BYPASS RENDER) ---
+# --- 🚀 PORT INTEGRITY SYSTEM ---
 if __name__ == "__main__":
     import uvicorn
     import os
