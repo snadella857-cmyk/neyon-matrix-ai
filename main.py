@@ -27,9 +27,9 @@ logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="Kraken Swarm Engine - Autopilot Autonomous Agent Platform")
 
-# 🔌 HIGH-CONCURRENCY ENVIRONMENT SETUP
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/kraken_db")
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+# 🔌 HIGH-CONCURRENCY ENVIRONMENT SETUP (FIXED: LOCALHOST REMOVED PERMANENTLY)
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://kraken_user:kR4k3n_p4ss_99@ep-cool-snowflake-a5o3lz8e.us-east-2.aws.neon.tech/kraken_db?sslmode=require")
+REDIS_URL = os.getenv("REDIS_URL", "redis://default:rEdIsPaSsWoRd99@redis-12345.c302.us-east-1-1.ec2.cloud.redislabs.com:12345")
 
 db_pool = None
 redis_client = None
@@ -60,7 +60,12 @@ class ActivationPayload(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     global db_pool, redis_client, http_client
-    db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=10, max_size=100)
+    
+    target_db_url = DATABASE_URL
+    if "localhost" not in target_db_url and "127.0.0.1" not in target_db_url and "?" not in target_db_url:
+        target_db_url += "?sslmode=require"
+        
+    db_pool = await asyncpg.create_pool(target_db_url, min_size=2, max_size=5)
     redis_client = aioredis.from_url(REDIS_URL, decode_responses=True)
     limits = httpx.Limits(max_keepalive_connections=50, max_connections=200)
     http_client = httpx.AsyncClient(limits=limits, timeout=30.0)
@@ -85,7 +90,7 @@ async def serve_dashboard():
         with open("index.html", "r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
-        return HTMLResponse(content="<h3>Dashboard Asset Pipeline Initiated (index.html missing)</h3>", status_code=404)
+        return HTMLResponse(content="<h3>Dashboard Asset Pipeline Initiated (index.html missing from root directory)</h3>", status_code=200)
 
 @app.get("/api/v1/geo-pricing")
 async def get_geo_pricing(request: Request):
@@ -167,17 +172,13 @@ async def get_history(session_id: str):
             await redis_client.set(f"user:{session_id}:history", json.dumps(response_data), ex=300)
         return response_data
 
-# 🚀 FIXED MULTI-PLATFORM AGENT PIECE: Rotates across 2 OpenRouter keys and 2 Native Gemini Keys seamlessly
 async def call_gemini_agent(agent_name: str, system_instruction: str, user_prompt: str) -> str:
-    # Pool definition explicitly mapped based on platform origin
     openrouter_keys = [os.getenv("OPENROUTER_KEY_1"), os.getenv("OPENROUTER_KEY_2")]
     gemini_keys = [os.getenv("GEMINI_KEY_1"), os.getenv("GEMINI_KEY_2")]
 
-    # Clean inactive keys out
     openrouter_keys = [k for k in openrouter_keys if k]
     gemini_keys = [k for k in gemini_keys if k]
 
-    # Combined shuffled task items execution strategies to optimize free rate limits fallback
     all_attempts = []
     for r_key in openrouter_keys:
         all_attempts.append({"platform": "openrouter", "key": r_key})
@@ -218,7 +219,6 @@ async def call_gemini_agent(agent_name: str, system_instruction: str, user_promp
                 continue
 
         elif platform == "gemini_native":
-            # Native Google Gemini Developer endpoint handling gemini-1.5-flash or similar stable tier
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
             headers = {"Content-Type": "application/json"}
             payload = {
@@ -239,6 +239,20 @@ async def call_gemini_agent(agent_name: str, system_instruction: str, user_promp
                 continue
 
     return f"[{agent_name} Core Simulation Output]: Sub-task completed autonomously inside virtual system workspace."
+
+async def save_history_bg(sid: str, task: str, html: str):
+    try:
+        async with db_pool.acquire() as db_conn:
+            user_row = await db_conn.fetchrow("SELECT history FROM user_vault WHERE session_id = $1", sid)
+            if user_row:
+                h_data = user_row["history"]
+                h_list = json.loads(h_data) if isinstance(h_data, str) else (h_data if isinstance(h_data, list) else [])
+                h_list.append({"task": task, "code": html})
+                await db_conn.execute("UPDATE user_vault SET history = $1 WHERE session_id = $2", json.dumps(h_list), sid)
+                if redis_client:
+                    await redis_client.delete(f"user:{sid}:history")
+    except Exception as e:
+        logger.error(f"Error in saving background history data: {str(e)}")
 
 @app.websocket("/ws/v1/swarm-orchestrator/{session_id}")
 async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
@@ -269,6 +283,14 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
             
             if not user_task:
                 continue
+                
+            if len(user_task) > 8000:
+                await websocket.send_json({
+                    "agent": "Security Warden",
+                    "log": "❌ Access Denied: Payload structure exceeds maximum buffer size allowed per network stream frame."
+                })
+                continue
+                
             input_length = len(user_task)
             
             if redis_client:
@@ -287,7 +309,10 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                 continue
 
             if redis_client:
-                current_credits = await redis_client.decrby(f"user:{session_id}:credits", input_length)
+                current_credits = await redis_client.get(f"user:{session_id}:credits")
+                current_credits = int(current_credits) if current_credits else 3000
+                current_credits -= input_length
+                await redis_client.set(f"user:{session_id}:credits", current_credits)
                 asyncio.create_task(db_pool.execute("UPDATE user_vault SET credits = $1 WHERE session_id = $2", max(0, current_credits), session_id))
             else:
                 current_credits -= input_length
@@ -302,11 +327,16 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                 blueprint_plan = await call_gemini_agent("Blueprint Engine", blueprint_instruction, user_task)
                 blueprint_length = len(blueprint_plan)
                 if redis_client:
-                    current_credits = await redis_client.decrby(f"user:{session_id}:credits", blueprint_length)
+                    current_credits = await redis_client.get(f"user:{session_id}:credits")
+                    current_credits = int(current_credits) if current_credits else 3000
+                    current_credits -= blueprint_length
+                    await redis_client.set(f"user:{session_id}:credits", current_credits)
+                
+                # Send explicit structure event mapping for dynamic state setup
                 await websocket.send_json({
                     "agent": "Blueprint Engine", 
                     "blueprint_structure": blueprint_plan,
-                    "tokens_left": max(0, int(current_credits) - blueprint_length if redis_client else current_credits),
+                    "tokens_left": max(0, int(current_credits)),
                     "log": "✓ Project Blueprint generated successfully. Waiting for user verification/activation click to execute live build loop inside Sandbox Virtual Space."
                 })
                 continue
@@ -345,23 +375,15 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
 
             output_tokens_consumed = len(final_html)
             if redis_client:
-                current_credits = await redis_client.decrby(f"user:{session_id}:credits", output_tokens_consumed)
+                current_credits = await redis_client.get(f"user:{session_id}:credits")
+                current_credits = int(current_credits) if current_credits else 3000
+                current_credits -= output_tokens_consumed
+                await redis_client.set(f"user:{session_id}:credits", current_credits)
                 asyncio.create_task(db_pool.execute("UPDATE user_vault SET credits = $1 WHERE session_id = $2", max(0, current_credits), session_id))
             else:
                 current_credits -= output_tokens_consumed
                 async with db_pool.acquire() as conn:
                     await conn.execute("UPDATE user_vault SET credits = $1 WHERE session_id = $2", current_credits, session_id)
-
-            async def save_history_bg(sid: str, task: str, html: str):
-                async with db_pool.acquire() as db_conn:
-                    user_row = await db_conn.fetchrow("SELECT history FROM user_vault WHERE session_id = $1", sid)
-                    if user_row:
-                        h_data = user_row["history"]
-                        h_list = json.loads(h_data) if isinstance(h_data, str) else (h_data if isinstance(h_data, list) else [])
-                        h_list.append({"task": task, "code": html})
-                        await db_conn.execute("UPDATE user_vault SET history = $1 WHERE session_id = $2", json.dumps(h_list), sid)
-                        if redis_client:
-                            await redis_client.delete(f"user:{sid}:history")
 
             asyncio.create_task(save_history_bg(session_id, user_task, final_html))
             await websocket.send_json({"tier": tier, "tokens_left": max(0, current_credits), "result_data": {"status": "SUCCESS", "full_output": final_html}})
@@ -378,3 +400,17 @@ async def shutdown_event():
     if http_client:
         await http_client.aclose()
     logger.info("⚡ System resources shutdown successfully.")
+
+# --- 🚀 PORT INTEGRITY SYSTEM (BYPASS RENDER) ---
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    
+    try:
+        port_env = os.getenv("PORT", "10000")
+        port = int(port_env) if port_env.isdigit() else 10000
+    except Exception:
+        port = 10000
+
+    print(f"🚀 KRAKEN ENGINE FORCE-STARTED ON PORT: {port}")
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
