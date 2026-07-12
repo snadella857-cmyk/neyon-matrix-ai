@@ -3,6 +3,6 @@ uvicorn
 asyncpg
 redis
 httpx
+pydantic
 qrcode
 pillow
-pydantic
