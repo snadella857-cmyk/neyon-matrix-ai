@@ -259,74 +259,61 @@ async def get_history(session_id: str):
         logger.error(f"History routing exception: {e}")
         return {"tier": "free", "credits_left": 3000, "history": [], "error": "Internal synchronization error"}
 
+# 🚀 UPGRADED FAILOVER ROUTING: Strict Priority Structure to minimize latency
 async def call_gemini_agent(agent_name: str, system_instruction: str, user_prompt: str) -> str:
     if not http_client:
         return f"[{agent_name} Core Simulation Output]: Execution parameter bypass mode enabled."
         
-    openrouter_keys = [os.getenv("OPENROUTER_KEY_1"), os.getenv("OPENROUTER_KEY_2")]
-    gemini_keys = [os.getenv("GEMINI_KEY_1"), os.getenv("GEMINI_KEY_2")]
+    openrouter_keys = [k for k in [os.getenv("OPENROUTER_KEY_1"), os.getenv("OPENROUTER_KEY_2")] if k]
+    gemini_keys = [k for k in [os.getenv("GEMINI_KEY_1"), os.getenv("GEMINI_KEY_2")] if k]
 
-    openrouter_keys = [k for k in openrouter_keys if k]
-    gemini_keys = [k for k in gemini_keys if k]
-
-    all_attempts = []
-    for r_key in openrouter_keys:
-        all_attempts.append({"platform": "openrouter", "key": r_key})
+    # Priority 1: Native Google Gemini Models (Direct and Fast)
     for g_key in gemini_keys:
-        all_attempts.append({"platform": "gemini_native", "key": g_key})
-    
-    random.shuffle(all_attempts)
-
-    if not all_attempts:
-         return f"[{agent_name} Core Simulation Output]: Execution parameters completed via automated system track successfully."
-
-    for execution_node in all_attempts:
-        platform = execution_node["platform"]
-        api_key = execution_node["key"]
-
-        if platform == "openrouter":
-            url = "https://openrouter.ai/api/v1/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://kraken-swarm.io",
-                "X-Title": "Kraken Swarm Engine"
-            }
-            payload = {
-                "model": "meta-llama/llama-3.1-8b-instruct:free", 
-                "messages": [
-                    {"role": "system", "content": system_instruction},
-                    {"role": "user", "content": user_prompt}
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={g_key}"
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": f"System Instruction: {system_instruction}\n\nUser Task Request: {user_prompt}"}
                 ]
-            }
-            try:
-                response = await http_client.post(url, headers=headers, json=payload, timeout=15.0)
-                if response.status_code == 200:
-                    res_data = response.json()
-                    if "choices" in res_data and len(res_data["choices"]) > 0:
-                        return res_data["choices"][0]["message"]["content"]
-            except Exception:
-                continue
+            }]
+        }
+        try:
+            response = await http_client.post(url, headers=headers, json=payload, timeout=8.0)
+            if response.status_code == 200:
+                res_data = response.json()
+                if "candidates" in res_data and len(res_data["candidates"]) > 0:
+                    part = res_data["candidates"][0]["content"]["parts"][0]
+                    return part.get("text", "")
+        except Exception as e:
+            logger.warning(f"⚠️ Primary Native Gemini Endpoint error: {e}. Cascading down to next node.")
+            continue
 
-        elif platform == "gemini_native":
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-            headers = {"Content-Type": "application/json"}
-            payload = {
-                "contents": [{
-                    "parts": [
-                        {"text": f"System Instruction: {system_instruction}\n\nUser Task Request: {user_prompt}"}
-                    ]
-                }]
-            }
-            try:
-                response = await http_client.post(url, headers=headers, json=payload, timeout=15.0)
-                if response.status_code == 200:
-                    res_data = response.json()
-                    if "candidates" in res_data and len(res_data["candidates"]) > 0:
-                        part = res_data["candidates"][0]["content"]["parts"][0]
-                        return part.get("text", "")
-            except Exception:
-                continue
+    # Priority 2: OpenRouter Dynamic Routing (Backup Fallback)
+    for r_key in openrouter_keys:
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {r_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://kraken-swarm.io",
+            "X-Title": "Kraken Swarm Engine"
+        }
+        payload = {
+            "model": "meta-llama/llama-3.1-8b-instruct:free", 
+            "messages": [
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": user_prompt}
+            ]
+        }
+        try:
+            response = await http_client.post(url, headers=headers, json=payload, timeout=10.0)
+            if response.status_code == 200:
+                res_data = response.json()
+                if "choices" in res_data and len(res_data["choices"]) > 0:
+                    return res_data["choices"][0]["message"]["content"]
+        except Exception as e:
+            logger.warning(f"⚠️ Secondary OpenRouter Endpoint error: {e}. Cascading down to next node.")
+            continue
 
     return f"[{agent_name} Core Simulation Output]: Sub-task completed autonomously inside virtual system workspace."
 
@@ -422,12 +409,10 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
             try:
                 if redis_client:
                     await redis_client.set(f"user:{session_id}:credits", current_credits)
-                    if db_pool:
-                        await db_pool.execute("UPDATE user_vault SET credits = $1 WHERE session_id = $2", max(0, current_credits), session_id)
-                else:
-                    if db_pool:
-                        async with db_pool.acquire() as conn:
-                            await conn.execute("UPDATE user_vault SET credits = $1 WHERE session_id = $2", max(0, current_credits), session_id)
+                # 🚀 ATOMIC DATABASE PROTECTION: Preventing race condition token bypasses
+                if db_pool:
+                    async with db_pool.acquire() as conn:
+                        await conn.execute("UPDATE user_vault SET credits = GREATEST(0, credits - $1) WHERE session_id = $2", input_length, session_id)
             except Exception:
                 pass
 
@@ -443,6 +428,9 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                 try:
                     if redis_client:
                         await redis_client.set(f"user:{session_id}:credits", current_credits)
+                    if db_pool:
+                        async with db_pool.acquire() as conn:
+                            await conn.execute("UPDATE user_vault SET credits = GREATEST(0, credits - $1) WHERE session_id = $2", blueprint_length, session_id)
                 except Exception:
                     pass
                 
@@ -473,11 +461,17 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
             assembler_instruction = "Synthesize an autonomous standalone feature-rich interactive dashboard application page using Tailwind CSS..."
             final_html_raw = await call_gemini_agent("Kraken Assembler", assembler_instruction, f"Core Requirements: {user_task}\n\nMulti-Agent Pipeline Inputs: {combined_context}")
             
+            # 🚀 FAIL-SAFE REGEX ENGINE: Pull out precise boundaries instead of fragile string splitting
             final_html = final_html_raw.strip()
-            if "```html" in final_html:
-                final_html = final_html.split("```html")[-1].split("```")[0].strip()
-            elif "```" in final_html:
-                final_html = final_html.split("```")[-1].split("```")[0].strip()
+            html_match = re.search(r"(<html.*?>.*?</html>|<!DOCTYPE.*?>.*?</html>)", final_html, re.DOTALL | re.IGNORECASE)
+            
+            if html_match:
+                final_html = html_match.group(1).strip()
+            else:
+                if "```html" in final_html:
+                    final_html = final_html.split("```html")[-1].split("```")[0].strip()
+                elif "```" in final_html:
+                    final_html = final_html.split("```")[-1].split("```")[0].strip()
 
             if not final_html.startswith("<"):
                 first_tag = final_html.find("<html")
@@ -492,12 +486,9 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
             try:
                 if redis_client:
                     await redis_client.set(f"user:{session_id}:credits", current_credits)
-                    if db_pool:
-                        await db_pool.execute("UPDATE user_vault SET credits = $1 WHERE session_id = $2", max(0, current_credits), session_id)
-                else:
-                    if db_pool:
-                        async with db_pool.acquire() as conn:
-                            await conn.execute("UPDATE user_vault SET credits = $1 WHERE session_id = $2", max(0, current_credits), session_id)
+                if db_pool:
+                    async with db_pool.acquire() as conn:
+                        await conn.execute("UPDATE user_vault SET credits = GREATEST(0, credits - $1) WHERE session_id = $2", output_tokens_consumed, session_id)
             except Exception:
                 pass
 
