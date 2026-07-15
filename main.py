@@ -36,9 +36,9 @@ except ImportError:
 logger = logging.getLogger("kraken_swarm_production")
 logging.basicConfig(level=logging.INFO)
 
-# 🔌 ENVIRONMENT SETUP - Clean base configurations (Render aur locally dono ke liye scalable)
-RAW_DB_URL = os.getenv("DATABASE_URL", "postgresql://kraken_user:kR4k3n_p4ss_99@ep-cool-snowflake-a5o3lz8e.us-east-2.aws.neon.tech/kraken_db")
-SECONDARY_DB_URL = os.getenv("SECONDARY_DATABASE_URL", RAW_DB_URL) # Agara Render par doosra db URL hoga toh auto-fetch karega
+# 🔌 ENVIRONMENT SETUP - SECURE FALLBACKS WITH ENVIRONMENT VARIABLE OVERRIDES
+RAW_DB_URL = os.getenv("DATABASE_URL", "postgresql://neondb_owner:npg_fAGLjuH5xJd8@ep-fancy-meadow-ajdpi2bm-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require")
+SECONDARY_DB_URL = os.getenv("SECONDARY_DATABASE_URL", RAW_DB_URL)
 REDIS_URL = os.getenv("REDIS_URL", "redis://default:rEdIsPaSsWoRd99@redis-12345.c302.us-east-1-1.ec2.cloud.redislabs.com:12345")
 
 db_pool = None
@@ -46,37 +46,25 @@ secondary_db_pool = None
 redis_client = None
 http_client = None
 
-# 🪙 SAFETY LIMITS MATRIX (UPDATED CHARACTER AND TOKEN PRICING LIMITS)
+# 🪙 CHARACTER LIMITS MATRIX
 PLAN_SAFETY_LIMITS = {
     "free": {
         "max_chars": 300,
-        "tokens_allocated": 3000,
-        "delay_seconds": 25.0,  # Speed delay to encourage upgrade
-        "max_daily_queries": 1   # Set to 1 strictly for your rule: Ek baar free sandbox mila, dobara kabhi nahi!
+        "delay_seconds": 25.0,  
+        "max_daily_queries": 1   
     },
     "token_refill": {
-        "max_chars": 1000,       # ₹299 = 1,000 chars limit
-        "tokens_allocated": 150000
+        "max_chars": 1000       
     },
     "lite": {
-        "max_chars": 2000,       # ₹499 = 2,000 chars limit
-        "tokens_allocated": 400000
+        "max_chars": 2000       
     },
     "infinite": {
-        "max_chars": 4000,       # ₹999 = 4,000 chars limit
-        "tokens_allocated": 1200000
+        "max_chars": 4000       
     },
     "enterprise": {
-        "max_chars": 10000,      # ₹3,999 = 10,000 chars limit
-        "tokens_allocated": 5000000
+        "max_chars": 10000      
     }
-}
-
-PLAN_TOKENS_ALLOCATION = {
-    "token_refill": 150000,
-    "lite": 400000,            
-    "infinite": 1200000,       
-    "enterprise": 5000000      
 }
 
 PRICING_MATRIX = {
@@ -92,7 +80,7 @@ class ActivationPayload(BaseModel):
     session_id: str
     email: str
     browser_timezone: str
-    device_fingerprint: str # Add fingerprint to track computer/browser details uniquely
+    device_fingerprint: str 
 
 async def initialize_db_tables():
     """Background helper to create tables once pool is ready"""
@@ -101,14 +89,12 @@ async def initialize_db_tables():
         try:
             if db_pool:
                 async with db_pool.acquire() as conn:
-                    # Upgraded Schema to support device tracking and permanent lockdown
                     await conn.execute('''
                         CREATE TABLE IF NOT EXISTS user_vault (
                             session_id TEXT PRIMARY KEY,
                             email TEXT,
                             device_hash TEXT,
                             tier TEXT DEFAULT 'free',
-                            credits INT DEFAULT 3000,
                             verified BOOLEAN DEFAULT FALSE,
                             free_tier_claimed BOOLEAN DEFAULT FALSE,
                             arbitrage_risk BOOLEAN DEFAULT FALSE,
@@ -128,7 +114,6 @@ async def initialize_db_tables():
 async def lifespan(app: FastAPI):
     global db_pool, secondary_db_pool, redis_client, http_client
     
-    # Primary DB URL check
     target_db_url = RAW_DB_URL
     if target_db_url:
         if "?sslmode=" in target_db_url:
@@ -137,7 +122,6 @@ async def lifespan(app: FastAPI):
         elif "localhost" not in target_db_url and "127.0.0.1" not in target_db_url:
             target_db_url = f"{target_db_url}?sslmode=require"
             
-    # Secondary DB URL check
     target_sec_url = SECONDARY_DB_URL
     if target_sec_url:
         if "?sslmode=" in target_sec_url:
@@ -185,13 +169,17 @@ async def lifespan(app: FastAPI):
         await http_client.aclose()
     logger.info("⚡ System resources shutdown successfully.")
 
-app = FastAPI(title="Kraken Swarm Engine - Autopilot Autonomous Agent Platform", lifespan=lifespan)
+app = FastAPI(title="Kraken Swarm Engine", lifespan=lifespan)
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard():
     try:
-        with open("index.html", "r", encoding="utf-8") as f:
-            return f.read()
+        loop = asyncio.get_event_loop()
+        def read_file():
+            with open("index.html", "r", encoding="utf-8") as f:
+                return f.read()
+        content = await loop.run_in_executor(None, read_file)
+        return HTMLResponse(content=content, status_code=200)
     except FileNotFoundError:
         return HTMLResponse(content="<h3>Dashboard Asset Pipeline Initiated</h3>", status_code=200)
 
@@ -229,7 +217,6 @@ async def generate_qr(tier: str, amount: str):
     img_byte_arr.seek(0)
     return StreamingResponse(img_byte_arr, media_type="image/png")
 
-# 🔒 SECURE WEBHOOK ENDPOINT
 @app.post("/api/v1/payment/webhook")
 async def payment_webhook(request: Request):
     if not db_pool:
@@ -258,23 +245,20 @@ async def payment_webhook(request: Request):
         plan_chosen = payment_entity["notes"].get("plan_chosen")
         
         if plan_chosen in PLAN_SAFETY_LIMITS and session_id:
-            tokens_to_add = PLAN_SAFETY_LIMITS[plan_chosen]["tokens_allocated"]
-            
             async with db_pool.acquire() as conn:
                 await conn.execute(
-                    "UPDATE user_vault SET credits = credits + $1, tier = $2, verified = TRUE WHERE session_id = $3", 
-                    tokens_to_add, plan_chosen, session_id
+                    "UPDATE user_vault SET tier = $1, verified = TRUE WHERE session_id = $2", 
+                    plan_chosen, session_id
                 )
             if redis_client:
-                await redis_client.set(f"user:{session_id}:credits", tokens_to_add, ex=3600)
+                await redis_client.set(f"user:{session_id}:tier", plan_chosen, ex=3600)
                 await redis_client.delete(f"user:{session_id}:history")
                 
-            logger.info(f"✅ Webhook Success: Added {tokens_to_add} tokens to user {session_id}")
-            return {"status": "SUCCESS", "message": "Tokens successfully added."}
+            logger.info(f"✅ Webhook Success: Set plan to {plan_chosen} for user {session_id}")
+            return {"status": "SUCCESS", "message": "Plan successfully upgraded."}
             
     return {"status": "IGNORED"}
 
-# 🛡️ SYSTEM NODE ACTIVATION (GOOGLE / AUTH INTERCEPTOR WITH DOUBLE LOCKS)
 @app.post("/api/v1/activate-node")
 async def activate_node(payload: ActivationPayload):
     if not db_pool:
@@ -283,7 +267,6 @@ async def activate_node(payload: ActivationPayload):
     email = payload.email.lower().strip()
     domain = email.split("@")[-1] if "@" in email else ""
     
-    # Anti-Freeloader Layer 1: Block Disposable/Fake Emails
     if domain in DISPOSABLE_DOMAINS or not re.match(r"[^@]+@[^@]+\.[^@]+", email):
         raise HTTPException(status_code=400, detail="❌ Professional or authenticated email networks only.")
     
@@ -292,15 +275,13 @@ async def activate_node(payload: ActivationPayload):
     
     try:
         async with db_pool.acquire() as conn:
-            # Anti-Freeloader Layer 2: Check if this hardware/browser fingerprint already claimed free sandbox
             fingerprint_check = await conn.fetchrow(
                 "SELECT * FROM user_vault WHERE device_hash = $1 AND free_tier_claimed = TRUE", 
                 payload.device_fingerprint
             )
             if fingerprint_check and fingerprint_check["session_id"] != payload.session_id:
-                raise HTTPException(status_code=403, detail="❌ Account Locked: This device has already exhausted its unique Free Sandbox allotment. Please upgrade to a premium account.")
+                raise HTTPException(status_code=403, detail="❌ Account Locked: This device has already exhausted its unique Free Sandbox allotment.")
 
-            # Anti-Freeloader Layer 3: Check if email already claimed free tier
             email_check = await conn.fetchrow(
                 "SELECT * FROM user_vault WHERE email = $1 AND free_tier_claimed = TRUE", 
                 email
@@ -315,10 +296,10 @@ async def activate_node(payload: ActivationPayload):
             if user:
                 await conn.execute("UPDATE user_vault SET email=$1, verified=TRUE, arbitrage_risk=$2, device_hash=$3 WHERE session_id=$4", email, arbitrage_risk, payload.device_fingerprint, payload.session_id)
             else:
-                await conn.execute("INSERT INTO user_vault (session_id, email, verified, arbitrage_risk, device_hash, credits, tier) VALUES ($1, $2, TRUE, $3, $4, 3000, 'free')", payload.session_id, email, arbitrage_risk, payload.device_fingerprint)
+                await conn.execute("INSERT INTO user_vault (session_id, email, verified, arbitrage_risk, device_hash, tier) VALUES ($1, $2, TRUE, $3, $4, 'free')", payload.session_id, email, arbitrage_risk, payload.device_fingerprint)
         
         if redis_client:
-            await redis_client.set(f"user:{payload.session_id}:credits", 3000, ex=3600)
+            await redis_client.set(f"user:{payload.session_id}:tier", "free", ex=3600)
             
     except HTTPException as he:
         raise he
@@ -330,7 +311,7 @@ async def activate_node(payload: ActivationPayload):
 
 @app.post("/api/v1/apply-recharge")
 async def apply_recharge(session_id: str, plan_chosen: str):
-    raise HTTPException(status_code=403, detail="❌ Security Warning: Static recharge bypass has been disabled. Payments must be routed securely through official gateways.")
+    raise HTTPException(status_code=403, detail="❌ Security Warning: Static recharge bypass has been disabled.")
 
 @app.get("/api/v1/history/{session_id}")
 async def get_history(session_id: str):
@@ -343,22 +324,22 @@ async def get_history(session_id: str):
             pass
             
     if not db_pool:
-         return {"tier": "free", "credits_left": 3000, "history": [], "warning": "DB Syncing/Unavailable"}
+         return {"tier": "free", "history": [], "warning": "DB Syncing/Unavailable"}
          
     try:
         async with db_pool.acquire() as conn:
-            user = await conn.fetchrow("SELECT tier, credits, history FROM user_vault WHERE session_id = $1", session_id)
+            user = await conn.fetchrow("SELECT tier, history FROM user_vault WHERE session_id = $1", session_id)
             if not user:
-                return {"tier": "free", "credits_left": 3000, "history": []}
+                return {"tier": "free", "history": []}
             history_data = user["history"]
             parsed_history = json.loads(history_data) if isinstance(history_data, str) else (history_data if isinstance(history_data, list) else [])
-            response_data = {"tier": user["tier"], "credits_left": user["credits"], "history": parsed_history}
+            response_data = {"tier": user["tier"], "history": parsed_history}
             if redis_client:
                 await redis_client.set(f"user:{session_id}:history", json.dumps(response_data), ex=300)
             return response_data
     except Exception as e:
         logger.error(f"History routing exception: {e}")
-        return {"tier": "free", "credits_left": 3000, "history": [], "error": "Internal synchronization error"}
+        return {"tier": "free", "history": [], "error": "Internal synchronization error"}
 
 async def call_gemini_agent(agent_name: str, system_instruction: str, user_prompt: str) -> str:
     if not http_client:
@@ -420,29 +401,31 @@ async def save_history_bg(sid: str, task: str, html: str):
     except Exception as e:
         logger.error(f"Error in saving background history data: {str(e)}")
 
-# 🚀 UPGRADED WEBSOCKET WITH HARD-GATE SUBSCRIPTION TRIGGER CONTROL
+# 🚀 WEBSOCKET SWARM ORCHESTRATOR WITH STABLE PARSING AND GRACEFUL EXCEPTION HANDLING
 @app.websocket("/ws/v1/swarm-orchestrator/{session_id}")
 async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
     await websocket.accept()
     
-    tier, credits, free_claimed = "free", 3000, False
-    try:
-        if db_pool:
+    tier, free_claimed = "free", False
+    
+    if db_pool:
+        try:
             async with db_pool.acquire() as conn:
-                user = await conn.fetchrow("SELECT tier, credits, free_tier_claimed FROM user_vault WHERE session_id = $1", session_id)
+                user = await conn.fetchrow("SELECT tier, free_tier_claimed FROM user_vault WHERE session_id = $1", session_id)
                 if user is None:
-                    # 🛠️ FIXED CRASH BUG: Ab ye hamesha safe 'conn' block ke andar hi execute hoga!
-                    await conn.execute("INSERT INTO user_vault (session_id, credits) VALUES ($1, 3000)", session_id)
-                    tier, credits, free_claimed = "free", 3000, False
+                    await conn.execute("INSERT INTO user_vault (session_id) VALUES ($1)", session_id)
+                    tier, free_claimed = "free", False
                 else:
-                    tier, credits, free_claimed = user["tier"], user["credits"], user["free_tier_claimed"]
+                    tier, free_claimed = user["tier"], user["free_tier_claimed"]
             
-        if redis_client:
-            await redis_client.set(f"user:{session_id}:credits", credits, ex=600)
-    except Exception as err:
-        logger.error(f"⚠️ Exception track inside WS Initializers: {err}")
+            if redis_client:
+                await redis_client.set(f"user:{session_id}:tier", tier, ex=600)
+        except Exception as err:
+            logger.error(f"⚠️ Exception track inside WS Initializers: {err}")
+    else:
+        logger.warning("⚠️ WS Initialization completed in offline fallback state due to empty db_pool.")
             
-    await websocket.send_json({"tier": tier, "tokens_left": max(0, credits)})
+    await websocket.send_json({"tier": tier, "status": "CONNECTED"})
     
     try:
         while True:
@@ -458,12 +441,11 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
             if not user_task:
                 continue
                 
-            # 🛡️ 1. Hard-Gate Plan Check: If Free Sandbox balance is exhausted, directly trigger Subscription Window!
-            if tier == "free" and (credits <= 0 or free_claimed):
+            if tier == "free" and free_claimed:
                 await websocket.send_json({
                     "action": "TRIGGER_SUBSCRIPTION_POPUP",
                     "agent": "Security Warden",
-                    "log": "❌ Access Revoked: Free Sandbox limit reached. Your device/profile has consumed its complimentary sandbox window. Upgrade to instantly build out this deployment!"
+                    "log": "❌ Access Revoked: Free Sandbox limit reached. Upgrade to instantly build out this deployment!"
                 })
                 continue
                 
@@ -474,96 +456,72 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
             if input_length > max_chars_allowed:
                 await websocket.send_json({
                     "agent": "Security Warden",
-                    "log": f"❌ Access Denied: Input length {input_length} exceeds limit of {max_chars_allowed} characters."
+                    "log": f"❌ Access Denied: Input length ({input_length} chars) exceeds your active plan limit of {max_chars_allowed} characters per prompt."
                 })
                 continue
 
-            current_credits = credits
-            if current_credits <= 0:
-                if tier in ["infinite", "enterprise"]:
-                    pass
-                else:
-                    await websocket.send_json({
-                        "action": "TRIGGER_SUBSCRIPTION_POPUP",
-                        "agent": "Security Warden",
-                        "log": "❌ Access Revoked: Balance Exhausted. Please subscribe or buy tokens."
-                    })
-                    continue
-
-            current_credits -= input_length
-            if current_credits < 0 and tier not in ["infinite", "enterprise"]:
-                await websocket.send_json({
-                    "action": "TRIGGER_SUBSCRIPTION_POPUP",
-                    "agent": "Security Warden",
-                    "log": "❌ Access Revoked: Insufficient tokens to process task. Upgrade required."
-                })
-                continue
-
-            # Update Credits and lock Free Tier consumption permanently on database layer
             try:
-                if redis_client:
-                    await redis_client.set(f"user:{session_id}:credits", current_credits)
-                if db_pool:
+                if db_pool and tier == "free":
                     async with db_pool.acquire() as conn:
-                        if tier == "free":
-                            await conn.execute("UPDATE user_vault SET credits = $1, free_tier_claimed = TRUE WHERE session_id = $2", current_credits, session_id)
-                            free_claimed = True
-                        else:
-                            await conn.execute("UPDATE user_vault SET credits = $1 WHERE session_id = $2", current_credits, session_id)
+                        await conn.execute("UPDATE user_vault SET free_tier_claimed = TRUE WHERE session_id = $1", session_id)
+                        free_claimed = True
             except Exception as db_mod_err:
                 logger.error(f"⚠️ Error updating database logs: {db_mod_err}")
 
-            credits = current_credits
-            await websocket.send_json({"tier": tier, "tokens_left": credits, "log": f"Processing task metadata updates..."})
+            await websocket.send_json({"tier": tier, "log": f"Processing task metadata updates..."})
 
-            if not is_approved:
-                await websocket.send_json({"agent": "Kraken Swarm Director", "log": "📋 Assembling autonomous step-by-step Execution Blueprint Plan..."})
-                blueprint_instruction = "Build a highly detailed architectural setup plan layout matching full autonomous capabilities..."
-                blueprint_plan = await call_gemini_agent("Blueprint Engine", blueprint_instruction, user_task)
+            try:
+                if not is_approved:
+                    await websocket.send_json({"agent": "Kraken Swarm Director", "log": "📋 Assembling autonomous step-by-step Execution Blueprint Plan..."})
+                    blueprint_instruction = "Build a highly detailed architectural setup plan layout matching full autonomous capabilities..."
+                    blueprint_plan = await call_gemini_agent("Blueprint Engine", blueprint_instruction, user_task)
+                    
+                    await websocket.send_json({
+                        "agent": "Blueprint Engine", 
+                        "blueprint_structure": blueprint_plan,
+                        "log": "✓ Project Blueprint generated successfully. Click Approve to launch Sandbox execution loops."
+                    })
+                    continue
+
+                if tier == "free":
+                    await websocket.send_json({"agent": "Kraken Swarm Director", "log": "🐢 Free Tier Sandbox speed active..."})
+                    await asyncio.sleep(config.get("delay_seconds", 25.0))
+
+                await websocket.send_json({"agent": "Kraken Swarm Director", "log": "🚀 Blueprint approved. Running agents pipeline..."})
+                agents_pipeline = [
+                    {"name": "Security Auditor", "prompt": "Identify code security vulnerabilities, trace invalid injections, prevent unauthorized system scripts execution."},
+                    {"name": "Swarm Architect", "prompt": "Map fully responsive layout blueprints, configure asset maps, set interactive state routers."},
+                    {"name": "Production Engine", "prompt": "Build highly integrated algorithmic components, interactive data visualizations, real-time widget configurations."},
+                    {"name": "Kraken Assembler", "prompt": "Synthesize multiple source agent streams into a single solid deployable module block."},
+                    {"name": "De-Penalization Agent", "prompt": "Perform self-healing checks on generated outputs, clean formatting limits."}
+                ]
                 
-                await websocket.send_json({
-                    "agent": "Blueprint Engine", 
-                    "blueprint_structure": blueprint_plan,
-                    "tokens_left": int(credits),
-                    "log": "✓ Project Blueprint generated successfully. Click Approve to launch Sandbox execution loops."
-                })
-                continue
+                combined_context = ""
+                for idx, agent in enumerate(agents_pipeline, start=1):
+                    await websocket.send_json({"agent": agent["name"], "log": f"Executing Agent [{idx}/5] matrix loop routines..."})
+                    agent_res = await call_gemini_agent(agent["name"], agent["prompt"], user_task)
+                    combined_context += f"\n\n[{agent['name']} Output]:\n{agent_res}"
+                
+                await websocket.send_json({"agent": "Kraken Assembler", "log": f"Compiling dynamic sandbox frame content..."})
+                assembler_instruction = "Synthesize an autonomous standalone feature-rich interactive dashboard application page using Tailwind CSS..."
+                final_html_raw = await call_gemini_agent("Kraken Assembler", assembler_instruction, f"Core Requirements: {user_task}\n\nMulti-Agent Pipeline Inputs: {combined_context}")
+                
+                final_html = final_html_raw.strip()
+                html_match = re.search(r"(<html.*?>.*?</html>|<!DOCTYPE.*?>.*?</html>)", final_html, re.DOTALL | re.IGNORECASE)
+                if html_match:
+                    final_html = html_match.group(1).strip()
+                else:
+                    if "```html" in final_html:
+                        final_html = final_html.split("```html")[-1].split("```")[0].strip()
+                    elif "```" in final_html:
+                        final_html = final_html.split("```")[-1].split("```")[0].strip()
 
-            if tier == "free":
-                await websocket.send_json({"agent": "Kraken Swarm Director", "log": "🐢 Free Tier Sandbox speed active..."})
-                await asyncio.sleep(config.get("delay_seconds", 25.0))
-
-            await websocket.send_json({"agent": "Kraken Swarm Director", "log": "🚀 Blueprint approved. Running agents pipeline..."})
-            agents_pipeline = [
-                {"name": "Security Auditor", "prompt": "Identify code security vulnerabilities, trace invalid injections, prevent unauthorized system scripts execution."},
-                {"name": "Swarm Architect", "prompt": "Map fully responsive layout blueprints, configure asset maps, set interactive state routers."},
-                {"name": "Production Engine", "prompt": "Build highly integrated algorithmic components, interactive data visualizations, real-time widget configurations."},
-                {"name": "Kraken Assembler", "prompt": "Synthesize multiple source agent streams into a single solid deployable module block."},
-                {"name": "De-Penalization Agent", "prompt": "Perform self-healing checks on generated outputs, clean formatting limits."}
-            ]
+                await save_history_bg(session_id, user_task, final_html)
+                await websocket.send_json({"tier": tier, "result_data": {"status": "SUCCESS", "full_output": final_html}})
             
-            combined_context = ""
-            for idx, agent in enumerate(agents_pipeline, start=1):
-                await websocket.send_json({"agent": agent["name"], "log": f"Executing Agent [{idx}/5] matrix loop routines..."})
-                agent_res = await call_gemini_agent(agent["name"], agent["prompt"], user_task)
-                combined_context += f"\n\n[{agent['name']} Output]:\n{agent_res}"
-            
-            await websocket.send_json({"agent": "Kraken Assembler", "log": f"Compiling dynamic sandbox frame content..."})
-            assembler_instruction = "Synthesize an autonomous standalone feature-rich interactive dashboard application page using Tailwind CSS..."
-            final_html_raw = await call_gemini_agent("Kraken Assembler", assembler_instruction, f"Core Requirements: {user_task}\n\nMulti-Agent Pipeline Inputs: {combined_context}")
-            
-            final_html = final_html_raw.strip()
-            html_match = re.search(r"(<html.*?>.*?</html>|<!DOCTYPE.*?>.*?</html>)", final_html, re.DOTALL | re.IGNORECASE)
-            if html_match:
-                final_html = html_match.group(1).strip()
-            else:
-                if "```html" in final_html:
-                    final_html = final_html.split("```html")[-1].split("```")[0].strip()
-                elif "```" in final_html:
-                    final_html = final_html.split("```")[-1].split("```")[0].strip()
-
-            await save_history_bg(session_id, user_task, final_html)
-            await websocket.send_json({"tier": tier, "tokens_left": credits, "result_data": {"status": "SUCCESS", "full_output": final_html}})
+            except Exception as loop_err:
+                logger.error(f"Error inside processing loop block: {str(loop_err)}")
+                await websocket.send_json({"agent": "Kraken Swarm Director", "log": f"❌ Error occurred during agent generation loop: {str(loop_err)}"})
             
     except WebSocketDisconnect:
         logger.info(f"🔌 Connection pool track released for Session Node: {session_id}")
@@ -580,4 +538,4 @@ if __name__ == "__main__":
         port = 10000
 
     print(f"🚀 KRAKEN ENGINE FORCE-STARTED ON PORT: {port}")
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
+    uvicorn.run(app, host="0.0.0.0", port=port, reload=False)

@@ -124,7 +124,7 @@
                     </div>
                 </div>
                 
-                <iframe id="sandbox-mirror" class="w-full h-full border-none bg-transparent m-0 p-0" sandbox="allow-scripts allow-modals allow-forms allow-same-origin"></iframe>
+                <iframe id="sandbox-mirror" class="w-full h-full border-none bg-transparent m-0 p-0" sandbox="allow-scripts allow-modals allow-forms"></iframe>
                 
                 <textarea id="sandbox-editor-panel" oninput="syncEditorToMirrorPreview()" class="hidden absolute inset-0 w-full h-full bg-slate-950 text-slate-300 font-mono text-xs p-4 focus:outline-none resize-none border-none m-0 rounded-none" placeholder=""></textarea>
             </div>
@@ -213,6 +213,8 @@
 
         function connectWebSocket() {
             const statusDot = document.getElementById("socket-status-dot");
+            if (!statusDot) return;
+            
             socket = new WebSocket(wsUrl);
 
             socket.onopen = function() {
@@ -230,8 +232,10 @@
                     if (data.agent) {
                         const badge = document.getElementById("active-agent-badge");
                         const txt = document.getElementById("active-agent-name");
-                        badge.classList.remove("hidden");
-                        txt.innerText = data.agent;
+                        if (badge && txt) {
+                            badge.classList.remove("hidden");
+                            txt.innerText = data.agent;
+                        }
                         
                         if (data.log) {
                             appendSystemLog(data.agent, data.log);
@@ -246,18 +250,23 @@
                     }
 
                     if (data.result_data && data.result_data.status === "SUCCESS") {
-                        document.getElementById("active-agent-badge").classList.add("hidden");
+                        const activeBadge = document.getElementById("active-agent-badge");
+                        if (activeBadge) activeBadge.classList.add("hidden");
                         
                         lastReceivedOutput = data.result_data.full_output;
                         document.getElementById("lazy-render-trigger-placeholder").classList.add("hidden");
                         document.getElementById("blueprint-approval-placeholder").classList.add("hidden");
                         
-                        document.getElementById("sandbox-editor-panel").value = lastReceivedOutput;
+                        const edPanel = document.getElementById("sandbox-editor-panel");
+                        if (edPanel) edPanel.value = lastReceivedOutput;
+                        
                         updateSandboxMirror(lastReceivedOutput);
                         
                         const dBtn = document.getElementById("production-deploy-trigger");
-                        dBtn.disabled = false;
-                        dBtn.className = "px-4 py-1.5 bg-slate-900 text-emerald-400 border border-emerald-500/30 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow cursor-pointer animate-pulse";
+                        if (dBtn) {
+                            dBtn.disabled = false;
+                            dBtn.className = "px-4 py-1.5 bg-slate-900 text-emerald-400 border border-emerald-500/30 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow cursor-pointer animate-pulse";
+                        }
 
                         if (window.innerWidth < 1024) switchMobileTab('preview');
                     }
@@ -268,7 +277,8 @@
 
             socket.onclose = function() {
                 statusDot.className = "w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse";
-                document.getElementById("active-agent-badge").classList.add("hidden");
+                const activeBadge = document.getElementById("active-agent-badge");
+                if (activeBadge) activeBadge.classList.add("hidden");
                 
                 reconnectAttempts++;
                 let currentDelay = Math.min(2000 * Math.pow(1.5, reconnectAttempts), maxReconnectDelay);
@@ -304,6 +314,7 @@
 
         function displayDynamicBlueprintModal(schema) {
             const container = document.getElementById("blueprint-details-box");
+            if (!container) return;
             container.innerHTML = "";
             document.getElementById("lazy-render-trigger-placeholder").classList.add("hidden");
             document.getElementById("blueprint-approval-placeholder").classList.remove("hidden");
@@ -329,6 +340,7 @@
 
         function updateSandboxMirror(rawCode) {
             const frame = document.getElementById("sandbox-mirror");
+            if (!frame) return;
             const doc = frame.contentDocument || frame.contentWindow.document;
             doc.open();
             doc.write(rawCode);
@@ -341,21 +353,26 @@
             const btnMirror = document.getElementById("view-mode-mirror");
             const btnEditor = document.getElementById("view-mode-editor");
 
+            if (!mirrorFrame || !editorTextarea) return;
+
             if (mode === 'mirror') {
                 mirrorFrame.classList.remove("hidden");
                 editorTextarea.classList.add("hidden");
-                btnMirror.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md bg-slate-950 text-emerald-400 shadow";
-                btnEditor.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200";
+                if(btnMirror) btnMirror.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md bg-slate-950 text-emerald-400 shadow";
+                if(btnEditor) btnEditor.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200";
             } else {
                 editorTextarea.classList.remove("hidden");
                 mirrorFrame.classList.add("hidden");
-                btnEditor.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md bg-slate-950 text-emerald-400 shadow";
-                btnMirror.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200";
+                if(btnEditor) btnEditor.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md bg-slate-950 text-emerald-400 shadow";
+                if(btnMirror) btnMirror.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200";
             }
         }
 
+        // BUG FIX 1: Two-Way State updates mirror directly when code editor modifications are injected
         function syncEditorToMirrorPreview() {
-            lastReceivedOutput = document.getElementById("sandbox-editor-panel").value;
+            const panel = document.getElementById("sandbox-editor-panel");
+            if (!panel) return;
+            lastReceivedOutput = panel.value;
             updateSandboxMirror(lastReceivedOutput);
         }
 
@@ -374,27 +391,41 @@
             }
         }
 
+        // BUG FIX 2: Fixed layout collapsing on desktop window switches/resizes by handling lg flex/hidden conflict rules
         function switchMobileTab(target) {
             const consolePane = document.getElementById("pane-console");
             const previewPane = document.getElementById("pane-preview");
             const btnConsole = document.getElementById("tab-btn-console");
             const btnPreview = document.getElementById("tab-btn-preview");
 
+            if (!consolePane || !previewPane) return;
+
             if (target === "console") {
-                consolePane.classList.remove("hidden");
+                consolePane.style.display = "flex";
+                previewPane.style.display = "none";
                 previewPane.classList.add("hidden");
-                if(window.innerWidth >= 1024) previewPane.classList.add("lg:flex");
-                btnConsole.className = "px-3 py-1 text-[10px] font-bold font-mono bg-emerald-500 text-slate-950 rounded-md shadow";
-                btnPreview.className = "px-3 py-1 text-[10px] font-bold font-mono text-slate-400 bg-slate-950 border border-slate-800 rounded-md";
+                consolePane.classList.remove("hidden");
+                if(btnConsole) btnConsole.className = "px-3 py-1 text-[10px] font-bold font-mono bg-emerald-500 text-slate-950 rounded-md shadow";
+                if(btnPreview) btnPreview.className = "px-3 py-1 text-[10px] font-bold font-mono text-slate-400 bg-slate-950 border border-slate-800 rounded-md";
             } else {
-                previewPane.classList.remove("hidden");
-                previewPane.classList.add("flex");
+                previewPane.style.display = "flex";
+                consolePane.style.display = "none";
                 consolePane.classList.add("hidden");
-                if(window.innerWidth >= 1024) consolePane.classList.add("lg:flex");
-                btnPreview.className = "px-3 py-1 text-[10px] font-bold font-mono bg-emerald-500 text-slate-950 rounded-md shadow";
-                btnConsole.className = "px-3 py-1 text-[10px] font-bold font-mono text-slate-400 bg-slate-950 border border-slate-800 rounded-md";
+                previewPane.classList.remove("hidden");
+                if(btnPreview) btnPreview.className = "px-3 py-1 text-[10px] font-bold font-mono bg-emerald-500 text-slate-950 rounded-md shadow";
+                if(btnConsole) btnConsole.className = "px-3 py-1 text-[10px] font-bold font-mono text-slate-400 bg-slate-950 border border-slate-800 rounded-md";
             }
         }
+
+        // Handle native window reset fallback layout configurations
+        window.addEventListener('resize', function() {
+            const consolePane = document.getElementById("pane-console");
+            const previewPane = document.getElementById("pane-preview");
+            if (window.innerWidth >= 1024) {
+                if(consolePane) { consolePane.style.display = ""; consolePane.classList.remove("hidden"); }
+                if(previewPane) { previewPane.style.display = ""; previewPane.classList.remove("hidden"); }
+            }
+        });
 
         fetch("/api/v1/geo-pricing")
             .then(res => res.json())
@@ -443,48 +474,75 @@
             const btnM = document.getElementById("btn-tab-monthly");
             const btnT = document.getElementById("btn-tab-token");
 
+            if (!mBox || !tBox) return;
+
             if (target === "monthly") {
                 mBox.classList.remove("hidden"); tBox.classList.add("hidden");
-                btnM.className = "flex-1 py-1 text-center font-bold text-[10px] bg-slate-950 text-emerald-400 rounded-md shadow";
-                btnT.className = "flex-1 py-1 text-center font-bold text-[10px] text-slate-400 rounded-md";
+                if(btnM) btnM.className = "flex-1 py-1 text-center font-bold text-[10px] bg-slate-950 text-emerald-400 rounded-md shadow";
+                if(btnT) btnT.className = "flex-1 py-1 text-center font-bold text-[10px] text-slate-400 rounded-md";
             } else {
                 tBox.classList.remove("hidden"); mBox.classList.add("hidden");
-                btnT.className = "flex-1 py-1 text-center font-bold text-[10px] bg-slate-950 text-amber-400 rounded-md shadow";
-                btnM.className = "flex-1 py-1 text-center font-bold text-[10px] text-slate-400 rounded-md";
+                if(btnT) btnT.className = "flex-1 py-1 text-center font-bold text-[10px] bg-slate-950 text-amber-400 rounded-md shadow";
+                if(btnM) btnM.className = "flex-1 py-1 text-center font-bold text-[10px] text-slate-400 rounded-md";
             }
         }
 
+        // BUG FIX 3: Strict element extraction handles exception fallback states when handling live endpoints
         function selectProductTier(tierKey) {
-            document.getElementById("payment-gateway-wrapper").classList.remove("hidden");
+            const wrapper = document.getElementById("payment-gateway-wrapper");
+            if(wrapper) wrapper.classList.remove("hidden");
             const wrapperINR = document.getElementById("gateway-inr-upi");
             const wrapperGlobal = document.getElementById("gateway-global-stripe");
             let useINR = geoPricingMatrix && geoPricingMatrix.country === "IN";
+            
             if (useINR) {
-                wrapperINR.classList.remove("hidden"); wrapperGlobal.classList.add("hidden");
-                let finalAmt = geoPricingMatrix.matrix[tierKey] || "299";
-                document.getElementById("upi-dynamic-qr-container").innerHTML = `<img src="/api/v1/generate-qr?tier=${tierKey}&amount=${finalAmt}" class="w-full h-full object-cover">`;
+                if(wrapperINR) wrapperINR.classList.remove("hidden"); 
+                if(wrapperGlobal) wrapperGlobal.classList.add("hidden");
+                let finalAmt = (geoPricingMatrix && geoPricingMatrix.matrix && geoPricingMatrix.matrix[tierKey]) || "299";
+                
+                const qrContainer = document.getElementById("upi-dynamic-qr-container");
+                if(qrContainer) {
+                    qrContainer.innerHTML = `<span class="text-[9px] text-slate-400">Generating Secure QR...</span>`;
+                    
+                    let qrImg = new Image();
+                    qrImg.className = "w-full h-full object-cover";
+                    qrImg.onerror = function() {
+                        qrContainer.innerHTML = `<span class="text-[9px] text-rose-500 font-bold uppercase p-2">QR Generation Error</span>`;
+                    };
+                    qrImg.onload = function() {
+                        qrContainer.innerHTML = "";
+                        qrContainer.appendChild(qrImg);
+                    };
+                    qrImg.src = `/api/v1/generate-qr?tier=${tierKey}&amount=${finalAmt}`;
+                }
             } else {
-                wrapperGlobal.classList.remove("hidden"); wrapperINR.classList.add("hidden");
+                if(wrapperGlobal) wrapperGlobal.classList.remove("hidden"); 
+                if(wrapperINR) wrapperINR.classList.add("hidden");
             }
         }
 
         function toggleDropdown(event) {
             if (event) event.stopPropagation();
-            document.getElementById("profile-dropdown").classList.toggle("hidden");
-            document.getElementById("drop-node-id").innerText = sessionNodeId;
+            const dropdown = document.getElementById("profile-dropdown");
+            const nodeEl = document.getElementById("drop-node-id");
+            if(dropdown) dropdown.classList.toggle("hidden");
+            if(nodeEl) nodeEl.innerText = sessionNodeId;
         }
 
         window.onclick = function() {
-            document.getElementById("profile-dropdown").classList.add("hidden");
+            const dropdown = document.getElementById("profile-dropdown");
+            if(dropdown) dropdown.classList.add("hidden");
         };
 
         function openHistory() {
             const modal = document.getElementById("history-modal");
+            if(!modal) return;
             modal.classList.remove("hidden");
             fetch(`/api/v1/history/${sessionNodeId}`)
                 .then(res => res.json())
                 .then(data => {
                     const box = document.getElementById("history-rows-container");
+                    if(!box) return;
                     box.innerHTML = "";
                     if (!data.history || data.history.length === 0) {
                         box.innerHTML = `<div class="text-slate-600 py-3 text-center">No structural builds.</div>`;
@@ -496,7 +554,8 @@
                         row.innerHTML = `<p class="text-slate-200 truncate max-w-xs">"${h.task}"</p><span class="text-emerald-400 font-bold">Restore</span>`;
                         row.onclick = function() {
                             lastReceivedOutput = h.code;
-                            document.getElementById("sandbox-editor-panel").value = lastReceivedOutput;
+                            const panel = document.getElementById("sandbox-editor-panel");
+                            if(panel) panel.value = lastReceivedOutput;
                             updateSandboxMirror(lastReceivedOutput);
                             document.getElementById("lazy-render-trigger-placeholder").classList.add("hidden");
                             document.getElementById("blueprint-approval-placeholder").classList.add("hidden");
@@ -506,9 +565,15 @@
                     });
                 });
         }
-        function closeHistory() { document.getElementById("history-modal").classList.add("hidden"); }
+        function closeHistory() { 
+            const modal = document.getElementById("history-modal");
+            if(modal) modal.classList.add("hidden"); 
+        }
 
-        connectWebSocket();
+        // BUG FIX 0: DOM Lifecycle Execution Block wrapper securely initialises socket listener
+        document.addEventListener("DOMContentLoaded", function() {
+            connectWebSocket();
+        });
     </script>
 </body>
 </html>
