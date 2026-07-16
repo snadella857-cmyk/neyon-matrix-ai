@@ -1,4 +1,4 @@
-Import os
+import os
 import re
 import json
 import asyncio
@@ -55,32 +55,25 @@ http_client = None
 # --- IN-MEMORY CACHE FOR LIVE PREVIEWS ---
 PREVIEW_CACHE: Dict[str, str] = {}
 
-# 🪙 CHARACTER LIMITS MATRIX
+# 🪙 CHARACTER LIMITS & QUOTA MANAGEMENT
 PLAN_SAFETY_LIMITS = {
     "free": {
-        "max_chars": 300,
-        "delay_seconds": 25.0,  
-        "max_daily_queries": 1   
+        "max_chars": 600,        # <--- 600 Characters (Testing ke liye ekdum perfect!)
+        "delay_seconds": 20.0,  
+        "max_daily_queries": 2   # <--- Pura satisfy hone ke liye 2 chances max
     },
-    "token_refill": {
-        "max_chars": 1000       
+    "lite": {                    # ₹499 Plan
+        "max_chars": 3500,       
+        "max_daily_queries": 25      
     },
-    "lite": {
-        "max_chars": 2000       
+    "infinite": {                # ₹999 Plan
+        "max_chars": 8000,       
+        "max_daily_queries": 60       
     },
-    "infinite": {
-        "max_chars": 4000       
-    },
-    "enterprise": {
-        "max_chars": 10000      
+    "enterprise": {              # ₹3999 Plan
+        "max_chars": 30000,      
+        "max_daily_queries": 999999  # Unlimited
     }
-}
-
-PRICING_MATRIX = {
-    "IN": {"currency": "INR", "symbol": "₹", "token_refill": 299, "lite": 499, "infinite": 999, "enterprise": 3999},
-    "US": {"currency": "USD", "symbol": "$", "token_refill": 3.99, "lite": 5.99, "infinite": 11.99, "enterprise": 49.99},
-    "EU": {"currency": "EUR", "symbol": "€", "token_refill": 3.49, "lite": 5.49, "infinite": 10.99, "enterprise": 44.99},
-    "AE": {"currency": "AED", "symbol": "AED ", "token_refill": 15, "lite": 22, "infinite": 45, "enterprise": 180}
 }
 
 DISPOSABLE_DOMAINS = {"mailinator.com", "temp-mail.org", "yopmail.com", "sharklasers.com", "guerrillamail.com", "dispostable.com", "getairmail.com"}
@@ -134,6 +127,7 @@ async def initialize_db_tables():
                             verified BOOLEAN DEFAULT FALSE,
                             free_tier_claimed BOOLEAN DEFAULT FALSE,
                             arbitrage_risk BOOLEAN DEFAULT FALSE,
+                            queries_used_today INT DEFAULT 0,
                             history JSONB DEFAULT '[]'::jsonb
                         );
                         CREATE TABLE IF NOT EXISTS krakendb_sync (
@@ -302,10 +296,8 @@ async def export_project_zip(session_id: str):
 
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
-        # Save standard index.html
         zip_file.writestr("index.html", content)
         
-        # Save instructions and runtime configurations
         readme_txt = """# Compiled Sandbox Project by Kraken Swarm Engine
 
 ## How to Run
@@ -323,93 +315,77 @@ async def export_project_zip(session_id: str):
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard():
-    try:
-        loop = asyncio.get_event_loop()
-        def read_file():
-            with open("index.html", "r", encoding="utf-8") as f:
-                return f.read()
-        content = await loop.run_in_executor(None, read_file)
-        return HTMLResponse(content=content, status_code=200)
-    except FileNotFoundError:
-        return HTMLResponse(content="<h3>Dashboard Asset Pipeline Initiated</h3>", status_code=200)
-
-@app.get("/api/v1/geo-pricing")
-async def get_geo_pricing(request: Request):
-    country_code = request.headers.get("CF-IPCountry", request.headers.get("X-Vercel-IP-Country", "US"))
-    if country_code not in PRICING_MATRIX:
-        country_code = "US"
-    return {"country": country_code, "matrix": PRICING_MATRIX[country_code]}
-
-@app.get("/api/v1/generate-qr")
-async def generate_qr(tier: str, amount: str):
-    upi_string = f"upi://pay?pa=kraken@upi&pn=KrakenSwarm&am={amount}&cu=INR&tn=Kraken_{tier}_Activation"
-    img_byte_arr = io.BytesIO()
-    global HAS_QRCODE
-    if HAS_QRCODE:
-        try:
-            qr = qrcode.QRCode(version=1, box_size=10, border=2)
-            qr.add_data(upi_string)
-            qr.make(fit=True)
-            img = qr.make_image(fill_color="black", back_color="white")
-            img.save(img_byte_arr, format='PNG')
-        except Exception:
-            HAS_QRCODE = False
+    dashboard_ui = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Kraken Swarm Production Engine Dashboard</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-slate-900 text-white flex flex-col items-center justify-center min-h-screen p-6">
+        <div class="max-w-md w-full bg-slate-800 rounded-xl p-8 shadow-2xl border border-slate-700 text-center">
+            <h1 class="text-3xl font-extrabold text-blue-400 mb-2">Kraken Swarm Engine</h1>
+            <p class="text-slate-400 text-sm mb-6">Claim your 600-character test sandbox quota instantly via integrated OAuth confirmation workflow layer.</p>
             
-    if not HAS_QRCODE:
-        try:
-            from PIL import Image, ImageDraw
-            img = Image.new('RGB', (250, 250), color = (255, 255, 255))
-            d = ImageDraw.Draw(img)
-            d.text((25,110), f"UPI ID: kraken@upi\nAmount: {amount} INR\nScan or Pay Directly", fill=(0,0,0))
-            img.save(img_byte_arr, format='PNG')
-        except ImportError:
-            return HTMLResponse(content="QR engine missing dependencies", status_code=500)
-        
-    img_byte_arr.seek(0)
-    return StreamingResponse(img_byte_arr, media_type="image/png")
+            <div id="auth-box">
+                <button id="google-login-btn" onclick="triggerGoogleSandboxClaim()" class="w-full flex items-center justify-center gap-3 bg-white text-slate-900 font-semibold py-3 px-4 rounded-lg hover:bg-slate-100 transition-all shadow-md">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24">
+                        <path fill="#EA4335" d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.2-5.636 4.2-3.856 0-6.99-3.134-6.99-6.99a6.99 6.99 0 0 1 6.99-6.99c1.74 0 3.3.63 4.53 1.67l3.22-3.22C18.28 1.19 15.46 0 12.24 0 5.48 0 0 5.48 0 12.24s5.48 12.24 12.24 12.24c6.82 0 12.3-4.94 12.3-12.24 0-.83-.08-1.64-.24-2.425H12.24Z"/>
+                    </svg>
+                    <span>Sign in with Google</span>
+                </button>
+            </div>
+            <div id="status-message" class="mt-4 text-sm font-medium"></div>
+        </div>
 
-@app.post("/api/v1/payment/webhook")
-async def payment_webhook(request: Request):
-    if not db_pool:
-        raise HTTPException(status_code=503, detail="Database currently offline.")
-    
-    payload = await request.body()
-    signature = request.headers.get("X-Razorpay-Signature")
-    webhook_secret = os.getenv("PAYMENT_SECRET_KEY", "kraken_secret_bypass_blocker")
-    
-    expected_signature = hmac.new(
-        bytes(webhook_secret, 'utf-8'),
-        msg=payload,
-        digestmod=hashlib.sha256
-    ).hexdigest()
-    
-    if not signature or not hmac.compare_digest(signature, expected_signature):
-        logger.warning("❌ Hacking Warning: Unauthorized Webhook Call detected!")
-        raise HTTPException(status_code=400, detail="Invalid signature.")
-        
-    data = await request.json()
-    event = data.get("event")
-    
-    if event in ["payment.captured", "charge.succeeded"]:
-        payment_entity = data["payload"]["payment"]["entity"]
-        session_id = payment_entity["notes"].get("session_id")
-        plan_chosen = payment_entity["notes"].get("plan_chosen")
-        
-        if plan_chosen in PLAN_SAFETY_LIMITS and session_id:
-            async with db_pool.acquire() as conn:
-                await conn.execute(
-                    "UPDATE user_vault SET tier = $1, verified = TRUE WHERE session_id = $2", 
-                    plan_chosen, session_id
-                )
-            if redis_client:
-                await redis_client.set(f"user:{session_id}:tier", plan_chosen, ex=3600)
-                await redis_client.delete(f"user:{session_id}:history")
+        <script>
+        async function triggerGoogleSandboxClaim() {
+            const statusMsg = document.getElementById("status-message");
+            statusMsg.className = "mt-4 text-sm font-medium text-blue-400 animate-pulse";
+            statusMsg.innerText = "Processing dynamic unique token activation token...";
+            
+            const mockSessionId = 'sess_' + Math.random().toString(36).substring(2, 15);
+            const userEmail = prompt("Enter your verified Google Account Email address to activate dynamic sandbox quota allotment:");
+            
+            if(!userEmail || !userEmail.includes("@")) {
+                statusMsg.className = "mt-4 text-sm font-medium text-red-400";
+                statusMsg.innerText = "❌ Invalid email channel connection mapping.";
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/activate-node', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: mockSessionId,
+                        email: userEmail,
+                        browser_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        device_fingerprint: "fp_static_hash_compiled_platform_node"
+                    })
+                });
                 
-            logger.info(f"✅ Webhook Success: Set plan to {plan_chosen} for user {session_id}")
-            asyncio.create_task(log_to_discord("Billing Warden", f"User {session_id} successfully upgraded to **{plan_chosen.upper()}** plan!", "SUCCESS"))
-            return {"status": "SUCCESS", "message": "Plan successfully upgraded."}
-            
-    return {"status": "IGNORED"}
+                const data = await response.json();
+                if(response.ok) {
+                    statusMsg.className = "mt-4 text-sm font-medium text-green-400";
+                    statusMsg.innerText = "✅ Quota Loaded: 600 Chars Sandbox initialized successfully! Max 2 inputs permitted today.";
+                    localStorage.setItem("kraken_active_session", mockSessionId);
+                } else {
+                    statusMsg.className = "mt-4 text-sm font-medium text-red-400";
+                    statusMsg.innerText = data.detail || "❌ Single verification quota mapping failed.";
+                }
+            } catch(e) {
+                statusMsg.className = "mt-4 text-sm font-medium text-red-400";
+                statusMsg.innerText = "❌ Network authorization handshake error.";
+            }
+        }
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=dashboard_ui, status_code=200)
 
 @app.post("/api/v1/activate-node")
 async def activate_node(payload: ActivationPayload):
@@ -427,28 +403,42 @@ async def activate_node(payload: ActivationPayload):
     
     try:
         async with db_pool.acquire() as conn:
-            fingerprint_check = await conn.fetchrow(
-                "SELECT * FROM user_vault WHERE device_hash = $1 AND free_tier_claimed = TRUE", 
-                payload.device_fingerprint
-            )
-            if fingerprint_check and fingerprint_check["session_id"] != payload.session_id:
-                raise HTTPException(status_code=403, detail="❌ Account Locked: This device has already exhausted its unique Free Sandbox allotment.")
-
+            # 🔒 LIFETIME STRICT BLOCK: Ek baar register hone ke baad, 2 din baad ya kabhi bhi dobara access nahi milega
             email_check = await conn.fetchrow(
                 "SELECT * FROM user_vault WHERE email = $1 AND free_tier_claimed = TRUE", 
                 email
             )
-            if email_check and email_check["session_id"] != payload.session_id:
-                raise HTTPException(status_code=403, detail="❌ Quota Expired: This email profile has already consumed a Free Sandbox workspace.")
+            if email_check:
+                raise HTTPException(
+                    status_code=403, 
+                    detail="❌ Access Denied: Aap is email se apna lifetime free quota pehle hi claim kar chuke hain. Dobara access nahi mil sakta."
+                )
+
+            # Strict Device Hardware Profile Validation (Lifetime Lock Chain)
+            fingerprint_check = await conn.fetchrow(
+                "SELECT * FROM user_vault WHERE device_hash = $1 AND free_tier_claimed = TRUE", 
+                payload.device_fingerprint
+            )
+            if fingerprint_check:
+                raise HTTPException(
+                    status_code=403, 
+                    detail="❌ Access Denied: Is device profile se free kota pehle hi liya ja chuka hai. Dobara entry permanently blocked hai."
+                )
 
             user = await conn.fetchrow("SELECT * FROM user_vault WHERE session_id = $1", payload.session_id)
             if "asia/calcutta" not in tz and "kolkata" not in tz and user and user.get("detected_country") == "IN":
                 arbitrage_risk = True
                 
             if user:
-                await conn.execute("UPDATE user_vault SET email=$1, verified=TRUE, arbitrage_risk=$2, device_hash=$3 WHERE session_id=$4", email, arbitrage_risk, payload.device_fingerprint, payload.session_id)
+                await conn.execute(
+                    "UPDATE user_vault SET email=$1, verified=TRUE, arbitrage_risk=$2, device_hash=$3, free_tier_claimed=TRUE WHERE session_id=$4", 
+                    email, arbitrage_risk, payload.device_fingerprint, payload.session_id
+                )
             else:
-                await conn.execute("INSERT INTO user_vault (session_id, email, verified, arbitrage_risk, device_hash, tier) VALUES ($1, $2, TRUE, $3, $4, 'free')", payload.session_id, email, arbitrage_risk, payload.device_fingerprint)
+                await conn.execute(
+                    "INSERT INTO user_vault (session_id, email, verified, arbitrage_risk, device_hash, tier, free_tier_claimed) VALUES ($1, $2, TRUE, $3, $4, 'free', TRUE)", 
+                    payload.session_id, email, arbitrage_risk, payload.device_fingerprint
+                )
         
         if redis_client:
             await redis_client.set(f"user:{payload.session_id}:tier", "free", ex=3600)
@@ -459,11 +449,7 @@ async def activate_node(payload: ActivationPayload):
         logger.error(f"Error executing db transaction in activate_node: {dbe}")
         raise HTTPException(status_code=500, detail="Internal lock configuration sync error.")
         
-    return {"status": "SUCCESS", "message": "Authenticated successfully."}
-
-@app.post("/api/v1/apply-recharge")
-async def apply_recharge(session_id: str, plan_chosen: str):
-    raise HTTPException(status_code=403, detail="❌ Security Warning: Static recharge bypass has been disabled.")
+    return {"status": "SUCCESS", "message": "Authenticated successfully. Lifetime single free quota locked."}
 
 @app.get("/api/v1/history/{session_id}")
 async def get_history(session_id: str):
@@ -501,7 +487,6 @@ async def call_gemini_agent(agent_name: str, system_instruction: str, user_promp
     openrouter_keys = [k for k in [os.getenv("OPENROUTER_KEY_1"), os.getenv("OPENROUTER_KEY_2")] if k]
     gemini_keys = [k for k in [os.getenv("GEMINI_KEY_1"), os.getenv("GEMINI_KEY_2")] if k]
 
-    # Try Gemini Endpoint first
     for g_key in gemini_keys:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={g_key}"
         headers = {"Content-Type": "application/json"}
@@ -517,7 +502,6 @@ async def call_gemini_agent(agent_name: str, system_instruction: str, user_promp
             logger.warning(f"⚠️ Primary Endpoint [Gemini] failure: {e}. Attempting fallback sequence...")
             continue
 
-    # Instant resilient fallback to OpenRouter (Llama models)
     for r_key in openrouter_keys:
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {"Authorization": f"Bearer {r_key}", "Content-Type": "application/json"}
@@ -542,7 +526,6 @@ async def self_heal_output_code(raw_code: str) -> str:
     """Active Auto-Healer to correct missing tags, incorrect markdown wraps, or unbalanced structures"""
     healed = raw_code.strip()
     
-    # Extract only HTML body if wrapped in markdown blocks
     html_match = re.search(r"(<html.*?>.*?</html>|<!DOCTYPE.*?>.*?</html>)", healed, re.DOTALL | re.IGNORECASE)
     if html_match:
         healed = html_match.group(1).strip()
@@ -552,13 +535,11 @@ async def self_heal_output_code(raw_code: str) -> str:
         elif "```" in healed:
             healed = healed.split("```")[-1].split("```")[0].strip()
             
-    # Quick static repair check
     if "<html" in healed and not healed.endswith("</html>"):
         healed += "\n</html>"
     if "<body" in healed and "</body>" not in healed:
         healed = healed.replace("</html>", "</body>\n</html>")
 
-    # Double-check through LLM healing pass if structural discrepancies remain
     if len(healed) < 100 or "<script" in healed and "</script>" not in healed:
         healer_instruction = "You are the Auto-Healer Engine. Take the input code, repair any broken/unclosed tag, fix missing script elements, and return the complete robust HTML."
         healed = await call_gemini_agent("Auto-Healer Agent", healer_instruction, healed)
@@ -566,7 +547,6 @@ async def self_heal_output_code(raw_code: str) -> str:
     return healed
 
 async def save_history_bg(sid: str, task: str, html: str):
-    # Direct fast write in memory engine preview cache for instantaneous routing
     PREVIEW_CACHE[sid] = html
     if not db_pool:
         return
@@ -618,17 +598,18 @@ async def process_async_agents_pipeline(user_task: str, combined_context_dict: d
 @app.websocket("/ws/v1/swarm-orchestrator/{session_id}")
 async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
     await websocket.accept()
-    tier, free_claimed = "free", False
+    tier, free_claimed, queries_used = "free", False, 0
     
     if db_pool:
         try:
             async with db_pool.acquire() as conn:
-                user = await conn.fetchrow("SELECT tier, free_tier_claimed FROM user_vault WHERE session_id = $1", session_id)
+                user = await conn.fetchrow("SELECT tier, free_tier_claimed, queries_used_today FROM user_vault WHERE session_id = $1", session_id)
                 if user is None:
                     await conn.execute("INSERT INTO user_vault (session_id) VALUES ($1)", session_id)
-                    tier, free_claimed = "free", False
+                    tier, free_claimed, queries_used = "free", False, 0
                 else:
                     tier, free_claimed = user["tier"], user["free_tier_claimed"]
+                    queries_used = user["queries_used_today"] if user["queries_used_today"] is not None else 0
             
             if redis_client:
                 await redis_client.set(f"user:{session_id}:tier", tier, ex=600)
@@ -649,34 +630,26 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                 
             user_task = payload.get("task", "").strip()
             is_approved = payload.get("blueprint_approved", False)
-            edit_instruction = payload.get("edit_instruction", "").strip() # Iterative editing instructions
+            edit_instruction = payload.get("edit_instruction", "").strip()
             
             if not user_task and not edit_instruction:
                 continue
-                
-            if tier == "free" and free_claimed:
-                await websocket.send_json({
-                    "action": "TRIGGER_SUBSCRIPTION_POPUP",
-                    "agent": "Security Warden",
-                    "log": "❌ Access Revoked: Free Sandbox limit reached. Upgrade to instantly build out this deployment!"
-                })
+
+            # 🛠️ STRICTOR QUOTA GATEKEEPING MATRIX RULES: Max 2 entries allowed inside free account limit structure
+            if tier == "free" and (queries_used >= PLAN_SAFETY_LIMITS["free"]["max_daily_queries"] or free_claimed):
+                await websocket.send_json({"agent": "Kraken Swarm Director", "log": "❌ Access Denied: Max daily sandbox query allocation exhausted (Limit: 2 queries max)."})
                 continue
-                
-            config = PLAN_SAFETY_LIMITS.get(tier, PLAN_SAFETY_LIMITS["free"])
-            max_chars_allowed = config["max_chars"]
-            input_length = len(user_task or edit_instruction)
-            
-            if input_length > max_chars_allowed:
-                await websocket.send_json({
-                    "agent": "Security Warden",
-                    "log": f"❌ Access Denied: Input length ({input_length} chars) exceeds your active plan limit of {max_chars_allowed} characters."
-                })
+
+            # Check inputs text validation rules against 600 character threshold architecture
+            if tier == "free" and (len(user_task) > PLAN_SAFETY_LIMITS["free"]["max_chars"] or len(edit_instruction) > PLAN_SAFETY_LIMITS["free"]["max_chars"]):
+                await websocket.send_json({"agent": "Kraken Swarm Director", "log": f"❌ Error: Free account workspace matrix limit exceeded 600 character restrictions."})
                 continue
 
             try:
-                if db_pool and tier == "free":
+                if db_pool:
                     async with db_pool.acquire() as conn:
-                        await conn.execute("UPDATE user_vault SET free_tier_claimed = TRUE WHERE session_id = $1", session_id)
+                        queries_used += 1
+                        await conn.execute("UPDATE user_vault SET free_tier_claimed = TRUE, queries_used_today = $1 WHERE session_id = $2", queries_used, session_id)
                         free_claimed = True
             except Exception as db_mod_err:
                 logger.error(f"⚠️ Error updating free database tier logs: {db_mod_err}")
@@ -706,7 +679,6 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                         await websocket.send_json({"agent": "Kraken Editor", "log": "⚡ Applying MULTIPLY (Modular Feature Addition) Engine..."})
                         asyncio.create_task(log_to_discord("Kraken Editor", f"Applying edit: {edit_instruction[:150]}", "INFO"))
                         
-                        # High-yield integration command to multiply rather than crop
                         editor_system_instruction = (
                             "You are the master Kraken Code Editor. Modify the existing stand-alone HTML application "
                             "based strictly on the user's edit instructions. Your primary rule is MULTIPLY: never "
@@ -720,7 +692,6 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                             f"Existing Code:\n{existing_html}\n\nEdit/Multiply Instruction:\n{edit_instruction}"
                         )
                         
-                        # Run through the self-healing pipeline before saving
                         await websocket.send_json({"agent": "Auto-Healer Agent", "log": "🔧 Running self-healing verification checks..."})
                         final_html = await self_heal_output_code(final_html_raw)
 
@@ -748,8 +719,8 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                     continue
 
                 if tier == "free":
-                    await websocket.send_json({"agent": "Kraken Swarm Director", "log": "🐢 Free Tier Sandbox speed active..."})
-                    await asyncio.sleep(config.get("delay_seconds", 25.0))
+                    await websocket.send_json({"agent": "Kraken Swarm Director", "log": f"🐢 Free Tier Sandbox speed active (Enforcing {PLAN_SAFETY_LIMITS['free']['delay_seconds']}s delay limit)..."})
+                    await asyncio.sleep(PLAN_SAFETY_LIMITS["free"]["delay_seconds"])
 
                 await websocket.send_json({"agent": "Kraken Swarm Director", "log": "🚀 Blueprint approved. Running agents pipeline..."})
                 
@@ -762,7 +733,6 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                 
                 await websocket.send_json({"agent": "Kraken Assembler", "log": f"Compiling dynamic sandbox frame content..."})
                 
-                # Cloud-connected dynamic database integration inside preview sandboxes
                 database_setup_snippet = f"""
                 <script>
                 class KrakenDB {{
@@ -779,7 +749,6 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                         items.push(record);
                         localStorage.setItem(this.storeName, JSON.stringify(items));
                         
-                        // Cloud Sync
                         try {{
                             await fetch('/api/v1/krakendb/sync', {{
                                 method: 'POST',
@@ -814,7 +783,6 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                 
                 final_html_raw = await call_gemini_agent("Kraken Assembler", assembler_instruction, f"Core Requirements: {user_task}\n\nMulti-Agent Pipeline Inputs: {combined_context}")
                 
-                # Run through the self-healing pipeline before saving
                 await websocket.send_json({"agent": "Auto-Healer Agent", "log": "🔧 Running self-healing verification checks..."})
                 final_html = await self_heal_output_code(final_html_raw)
 
