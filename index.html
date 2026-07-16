@@ -2,21 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Kraken Swarm Cluster - Enterprise Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar { width: 5px; height: 4px; }
         ::-webkit-scrollbar-track { background: #020617; }
         ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
         .agent-pulse { animation: agent-blink 1.5s infinite ease-in-out; }
         @keyframes agent-blink { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+        html, body { height: 100%; overflow: hidden; width: 100%; margin: 0; padding: 0; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-emerald-500 selection:text-slate-950 flex flex-col lg:overflow-hidden">
+<body class="bg-slate-950 text-slate-100 h-full w-full font-sans selection:bg-emerald-500 selection:text-slate-950 flex flex-col overflow-hidden m-0 p-0">
 
-    <header class="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-6 py-4 flex items-center justify-between shrink-0">
+    <header class="w-full border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-4 py-4 flex items-center justify-between shrink-0">
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-slate-950 text-lg font-black shadow-lg">
                 <i class="fa-solid fa-ghost"></i>
@@ -48,16 +49,20 @@
         </div>
     </header>
 
-    <div class="lg:hidden bg-slate-900/60 border-b border-slate-800 p-2 flex justify-center space-x-2 shrink-0">
-        <button id="tab-btn-console" onclick="switchMobileTab('console')" class="px-3 py-1 text-[10px] font-bold font-mono bg-emerald-500 text-slate-950 rounded-md shadow">Console</button>
-        <button id="tab-btn-preview" onclick="switchMobileTab('preview')" class="px-3 py-1 text-[10px] font-bold font-mono text-slate-400 bg-slate-950 border border-slate-800 rounded-md">Live Sandbox Mirror</button>
+    <div class="lg:hidden bg-slate-950 border-b border-slate-900 p-0 flex justify-center items-center w-full shrink-0">
+        <button id="tab-btn-console" onclick="switchMobileTab('console')" class="flex-1 py-3 text-center text-xs font-mono font-bold tracking-widest uppercase bg-slate-900 text-emerald-400 border-b-2 border-emerald-500 transition-all duration-200">
+            Console
+        </button>
+        <button id="tab-btn-preview" onclick="switchMobileTab('preview')" class="flex-1 py-3 text-center text-xs font-mono font-bold tracking-widest uppercase text-slate-500 hover:text-slate-300 border-b-2 border-transparent transition-all duration-200">
+            Live Sandbox Mirror
+        </button>
     </div>
 
-    <main class="grid grid-cols-1 lg:grid-cols-12 flex-1 w-full overflow-y-auto lg:overflow-hidden min-h-0">
+    <main class="flex-1 flex flex-col w-full overflow-hidden min-h-0 m-0 p-0">
         
-        <section id="pane-console" class="lg:col-span-4 border-r border-slate-900 p-4 flex flex-col h-[calc(100vh-80px)] lg:h-full overflow-hidden bg-slate-950">
-            <div class="flex-1 flex flex-col min-h-0 space-y-3 overflow-hidden">
-                <div class="flex items-center justify-between border-b border-slate-900 pb-1.5 shrink-0">
+        <section id="pane-console" class="w-full flex-1 p-4 flex flex-col h-full overflow-hidden bg-slate-950 m-0 border-none">
+            <div class="flex-1 flex flex-col min-h-0 space-y-3 overflow-hidden w-full">
+                <div class="flex items-center justify-between border-b border-slate-900 pb-1.5 shrink-0 w-full">
                     <div class="flex items-center space-x-2">
                         <h3 class="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider">Swarm Execution Logs</h3>
                         <div id="active-agent-badge" class="hidden px-1.5 py-0.5 rounded text-[8px] font-mono uppercase bg-teal-500/10 border border-teal-500/30 text-teal-400 agent-pulse flex items-center space-x-1">
@@ -68,14 +73,35 @@
                     <span id="socket-status-dot" class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                 </div>
                 
-                <div id="console-logs" class="flex-1 overflow-y-auto bg-black/20 border border-slate-900 rounded-xl p-3 font-mono text-[11px] space-y-2 min-h-0">
+                <div id="console-logs" class="w-full flex-1 overflow-y-auto bg-black/20 border border-slate-900 rounded-xl p-3 font-mono text-[11px] space-y-2 min-h-0">
+                    <div id="initial-welcome-hook" class="w-full p-3 bg-slate-900/50 border border-slate-800 rounded-lg text-center my-1 transition-all duration-300">
+                        <p class="text-xs font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+                            Sirf apna topic batao, code automatic hamara platform system build karke dega.
+                        </p>
+                    </div>
                     <div class="text-slate-500">Pipeline Online. Input your complex task requirement or app deployment model below...</div>
                 </div>
             </div>
 
-            <div class="mt-4 pb-4 lg:pb-2 pt-2 border-t border-slate-900 shrink-0 bg-slate-950">
-                <div class="relative flex items-center bg-slate-900/60 border border-slate-800 focus-within:border-emerald-500/40 rounded-xl overflow-hidden p-1 shadow-lg">
-                    <textarea id="task-input" rows="2" class="w-full bg-transparent p-2.5 pr-12 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none transition resize-none max-h-32" placeholder="Explain the complex app or autonomous task details you want to build..."></textarea>
+            <div class="w-full mt-3 pb-2 pt-2 border-t border-slate-900 shrink-0 bg-slate-950 space-y-2">
+                
+                <div id="ready-suggestions-tags" class="flex flex-row items-center gap-2 pt-1 w-full overflow-x-auto whitespace-nowrap pb-1">
+                    <button type="button" onclick="handleQuickTagClick(' Build a SaaS Website')" class="text-[9px] font-mono font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-800 active:scale-95 transition-all duration-150 shrink-0 w-auto">
+                         Build a SaaS Website
+                    </button>
+                    <button type="button" onclick="handleQuickTagClick(' Create Landing Page')" class="text-[9px] font-mono font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-800 active:scale-95 transition-all duration-150 shrink-0 w-auto">
+                         Create Landing Page
+                    </button>
+                    <button type="button" onclick="handleQuickTagClick(' E-commerce System')" class="text-[9px] font-mono font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-800 active:scale-95 transition-all duration-150 shrink-0 w-auto">
+                         E-commerce System
+                    </button>
+                    <button type="button" onclick="handleQuickTagClick(' Portfolio Platform')" class="text-[9px] font-mono font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-800 active:scale-95 transition-all duration-150 shrink-0 w-auto">
+                         Portfolio Platform
+                    </button>
+                </div>
+
+                <div class="relative flex items-center bg-slate-900/60 border border-slate-800 focus-within:border-emerald-500/40 rounded-xl overflow-hidden p-1 shadow-lg w-full mx-auto">
+                    <textarea id="task-input" rows="2" oninput="autoExpandPromptField(this)" class="w-full bg-transparent p-2.5 pr-12 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none transition resize-none max-h-32" placeholder="Apna business idea ya topic likhein, jaise: 'E-commerce store ke liye Next.js website build karna'..."></textarea>
                     <button onclick="initiateSwarmPipeline()" class="absolute right-2.5 bottom-2.5 w-8 h-8 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg transition shadow flex items-center justify-center" title="Generate Blueprint Plan">
                         <i class="fa-solid fa-bolt text-xs"></i>
                     </button>
@@ -83,9 +109,9 @@
             </div>
         </section>
 
-        <section id="pane-preview" class="hidden lg:col-span-8 bg-slate-950 flex flex-col min-h-[500px] lg:min-h-0 h-full lg:flex overflow-hidden">
+        <section id="pane-preview" class="hidden bg-slate-950 flex flex-col h-full overflow-hidden w-full m-0 border-none">
             
-            <div class="flex items-center justify-between border-b border-slate-900 px-4 py-3 shrink-0 bg-slate-950/90 backdrop-blur">
+            <div class="flex items-center justify-between border-b border-slate-900 px-4 py-3 shrink-0 bg-slate-950/90 backdrop-blur w-full">
                 <div class="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800/80">
                     <button id="view-mode-editor" onclick="toggleSandboxView('editor')" class="px-3 py-1.5 text-[10px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200 transition">Code Editor</button>
                     <button id="view-mode-mirror" onclick="toggleSandboxView('mirror')" class="px-3 py-1.5 text-[10px] font-mono font-bold uppercase rounded-md bg-slate-950 text-emerald-400 shadow transition">Live Preview</button>
@@ -106,11 +132,11 @@
             
             <div class="flex-1 w-full bg-slate-950 overflow-hidden relative min-h-0 p-0 m-0 border-0 flex flex-col">
                 
-                <div id="blueprint-approval-placeholder" class="hidden absolute inset-0 bg-slate-950/95 z-20 flex flex-col items-center justify-center p-6 text-center space-y-4 font-mono">
+                <div id="blueprint-approval-placeholder" class="hidden absolute inset-0 bg-slate-950/95 z-20 flex flex-col items-center justify-center p-6 text-center space-y-4 font-mono w-full">
                     <div class="w-12 h-12 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
                         <i class="fa-solid fa-map text-base"></i>
                     </div>
-                    <div class="max-w-md space-y-2">
+                    <div class="w-full space-y-2 flex flex-col items-center">
                         <p class="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Architectural Plan Generated</p>
                         <div id="blueprint-details-box" class="w-full text-left bg-black/40 border border-slate-900 p-3 rounded-xl max-h-36 overflow-y-auto text-[10px] text-slate-300 space-y-1">
                         </div>
@@ -118,16 +144,6 @@
                     <button onclick="approveBlueprintAndBuild()" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold font-mono text-xs uppercase rounded-xl shadow transition flex items-center space-x-2">
                         <i class="fa-solid fa-circle-check text-[11px]"></i><span>Approve & Launch Swarm</span>
                     </button>
-                </div>
-
-                <div id="lazy-render-trigger-placeholder" class="absolute inset-0 bg-slate-950 z-10 flex flex-col items-center justify-center p-4 text-center space-y-3 font-mono">
-                    <div class="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-                        <i class="fa-solid fa-terminal text-base"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs font-bold text-slate-400">Application Sandbox Standby</p>
-                        <p class="text-[10px] text-slate-600 mt-0.5">Submit configuration instructions inside terminal block matrix.</p>
-                    </div>
                 </div>
                 
                 <iframe id="sandbox-mirror" class="w-full flex-1 border-none bg-slate-900/10 m-0 p-0 h-full" sandbox="allow-scripts allow-modals allow-forms"></iframe>
@@ -161,29 +177,27 @@
                 </div>
                 <div id="box-monthly-plans" class="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <div onclick="selectProductTier('lite')" class="border border-slate-900 bg-slate-900/20 p-2.5 rounded-xl cursor-pointer hover:border-slate-800 transition text-[10px]">
-                        <p class="font-bold text-slate-300">Lite</p>
-                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-lite">--</div>
+                        <p class="font-bold text-slate-300">Lite (3k words / 20 logs)</p>
+                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-lite">499</div>
                     </div>
                     <div onclick="selectProductTier('infinite')" class="border border-emerald-500/30 bg-emerald-500/5 p-2.5 rounded-xl cursor-pointer transition text-[10px]">
-                        <p class="font-bold text-slate-200">Infinite</p>
-                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-infinite">--</div>
+                        <p class="font-bold text-slate-200">Infinite Swarm</p>
+                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-infinite">999</div>
                     </div>
                     <div onclick="selectProductTier('enterprise')" class="border border-slate-900 bg-slate-900/20 p-2.5 rounded-xl cursor-pointer hover:border-slate-800 transition text-[10px]">
-                        <p class="font-bold text-slate-300">Enterprise</p>
-                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-enterprise">--</div>
+                        <p class="font-bold text-slate-300">Enterprise Cluster</p>
+                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-enterprise">3999</div>
                     </div>
                 </div>
                 <div id="box-token-plans" class="hidden">
                     <div onclick="selectProductTier('token_refill')" class="border border-amber-500/30 bg-amber-500/5 p-3 rounded-xl cursor-pointer transition flex justify-between items-center text-[10px]">
                         <p class="font-bold text-amber-400">Casual Credit Stack</p>
-                        <div class="text-sm font-bold text-amber-400" id="price-lbl-token">--</div>
+                        <div class="text-sm font-bold text-amber-400" id="price-lbl-token">50</div>
                     </div>
                 </div>
                 <div id="payment-gateway-wrapper" class="hidden bg-slate-900/60 border border-slate-900 p-3 rounded-xl text-center space-y-2">
                     <div id="gateway-inr-upi" class="hidden space-y-2">
-                        <div id="upi-dynamic-qr-container" class="w-28 h-28 bg-white mx-auto rounded-lg flex items-center justify-center text-slate-950 font-black overflow-hidden">
-                            <span class="text-[9px] text-slate-400">Generating QR...</span>
-                        </div>
+                        <button id="razorpay-direct-btn" onclick="redirectToRazorpay()" class="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold uppercase rounded-lg text-[10px] tracking-wider transition">Proceed to Secure Payment</button>
                     </div>
                     <div id="gateway-global-stripe" class="hidden py-1">
                         <button onclick="alert('Stripe Gateway Loaded')" class="w-full py-2 bg-indigo-600 font-bold uppercase rounded-lg text-white text-[10px]">Pay via Stripe</button>
@@ -207,15 +221,38 @@
         let sessionNodeId = localStorage.getItem("kraken_session_node") || ("node_" + Math.random().toString(36).substring(2, 13));
         localStorage.setItem("kraken_session_node", sessionNodeId);
 
+        let activeSelectedTier = "lite";
+
+        const razorpayLinks = {
+            'lite': 'https://rzp.io/rzp/E5pgYUm',
+            'infinite': 'https://rzp.io/rzp/MfginZIl',
+            'enterprise': 'https://rzp.io/rzp/1uPtcbJt',
+            'token_refill': 'https://rzp.io/rzp/E5pgYUm'
+        };
+
         let socket;
         const wsProto = window.location.protocol === "https:" ? "wss://" : "ws://";
         const wsUrl = wsProto + window.location.host + "/ws/v1/swarm-orchestrator/" + sessionNodeId;
         
-        let geoPricingMatrix = null;
+        let geoPricingMatrix = { country: "IN", matrix: { symbol: "", lite: "499", infinite: "999", enterprise: "3999", token_refill: "50" } };
         let lastReceivedOutput = "";
         let currentPromptTask = "";
         let reconnectAttempts = 0;
         const maxReconnectDelay = 15000;
+
+        function autoExpandPromptField(element) {
+            element.style.height = 'auto';
+            element.style.height = (element.scrollHeight) + 'px';
+        }
+
+        function handleQuickTagClick(tagValue) {
+            const textarea = document.getElementById('task-input');
+            if (!textarea) return;
+            textarea.value = tagValue;
+            autoExpandPromptField(textarea);
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        }
 
         function connectWebSocket() {
             const statusDot = document.getElementById("socket-status-dot");
@@ -246,7 +283,7 @@
                         if (data.log) {
                             appendSystemLog(data.agent, data.log);
                             if (data.log.includes("Activation Gate protocol initiated")) {
-                                document.getElementById("activation-gate-modal").classList.remove("hidden");
+                                triggerActivationModal();
                             }
                         }
                     }
@@ -260,15 +297,12 @@
                         if (activeBadge) activeBadge.classList.add("hidden");
                         
                         lastReceivedOutput = data.result_data.full_output;
-                        document.getElementById("lazy-render-trigger-placeholder").classList.add("hidden");
                         document.getElementById("blueprint-approval-placeholder").classList.add("hidden");
                         
                         const edPanel = document.getElementById("sandbox-editor-panel");
                         if (edPanel) edPanel.value = lastReceivedOutput;
                         
                         updateSandboxMirror(lastReceivedOutput);
-                        
-                        // Activate all task buttons dynamically once code is successfully ready
                         activateSmartButtons();
 
                         if (window.innerWidth < 1024) switchMobileTab('preview');
@@ -289,7 +323,10 @@
             };
         }
 
-        // Activation helper for dynamic button states
+        function triggerActivationModal() {
+            document.getElementById("activation-gate-modal").classList.remove("hidden");
+        }
+
         function activateSmartButtons() {
             const btnCopy = document.getElementById("copy-code-trigger");
             const btnDownload = document.getElementById("download-code-trigger");
@@ -305,7 +342,7 @@
             }
             if(btnDeploy) {
                 btnDeploy.disabled = false;
-                btnDeploy.className = "px-4 py-1.5 bg-emerald-500 text-slate-950 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow cursor-pointer hover:bg-emerald-400 animate-pulse";
+                btnDeploy.className = "px-4 py-1.5 bg-emerald-500 text-slate-950 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow pointer hover:bg-emerald-400 animate-pulse";
             }
         }
 
@@ -336,7 +373,6 @@
             if (!inp || !inp.value.trim()) return;
             
             currentPromptTask = inp.value.trim();
-            document.getElementById("lazy-render-trigger-placeholder").classList.remove("hidden");
             document.getElementById("blueprint-approval-placeholder").classList.add("hidden");
 
             if (socket && socket.readyState === WebSocket.OPEN) {
@@ -352,7 +388,6 @@
             const container = document.getElementById("blueprint-details-box");
             if (!container) return;
             container.innerHTML = "";
-            document.getElementById("lazy-render-trigger-placeholder").classList.add("hidden");
             document.getElementById("blueprint-approval-placeholder").classList.remove("hidden");
             
             if (schema.steps && schema.steps.length > 0) {
@@ -439,15 +474,25 @@
                 previewPane.style.display = "none";
                 previewPane.classList.add("hidden");
                 consolePane.classList.remove("hidden");
-                if(btnConsole) btnConsole.className = "px-3 py-1 text-[10px] font-bold font-mono bg-emerald-500 text-slate-950 rounded-md shadow";
-                if(btnPreview) btnPreview.className = "px-3 py-1 text-[10px] font-bold font-mono text-slate-400 bg-slate-950 border border-slate-800 rounded-md";
+                
+                if(btnConsole) {
+                    btnConsole.className = "flex-1 py-3 text-center text-xs font-mono font-bold tracking-widest uppercase bg-slate-900 text-emerald-400 border-b-2 border-emerald-500 transition-all duration-200";
+                }
+                if(btnPreview) {
+                    btnPreview.className = "flex-1 py-3 text-center text-xs font-mono font-bold tracking-widest uppercase text-slate-500 hover:text-slate-300 border-b-2 border-transparent transition-all duration-200";
+                }
             } else {
                 previewPane.style.display = "flex";
                 consolePane.style.display = "none";
                 consolePane.classList.add("hidden");
                 previewPane.classList.remove("hidden");
-                if(btnPreview) btnPreview.className = "px-3 py-1 text-[10px] font-bold font-mono bg-emerald-500 text-slate-950 rounded-md shadow";
-                if(btnConsole) btnConsole.className = "px-3 py-1 text-[10px] font-bold font-mono text-slate-400 bg-slate-950 border border-slate-800 rounded-md";
+                
+                if(btnPreview) {
+                    btnPreview.className = "flex-1 py-3 text-center text-xs font-mono font-bold tracking-widest uppercase bg-slate-900 text-emerald-400 border-b-2 border-emerald-500 transition-all duration-200";
+                }
+                if(btnConsole) {
+                    btnConsole.className = "flex-1 py-3 text-center text-xs font-mono font-bold tracking-widest uppercase text-slate-500 hover:text-slate-300 border-b-2 border-transparent transition-all duration-200";
+                }
             }
         }
 
@@ -460,45 +505,20 @@
             }
         });
 
-        fetch("/api/v1/geo-pricing")
-            .then(res => res.json())
-            .then(data => {
-                geoPricingMatrix = data;
-                const m = data.matrix;
-                document.getElementById("price-lbl-lite").innerText = m.symbol + m.lite;
-                document.getElementById("price-lbl-infinite").innerText = m.symbol + m.infinite;
-                document.getElementById("price-lbl-enterprise").innerText = m.symbol + m.enterprise;
-                document.getElementById("price-lbl-token").innerText = m.symbol + m.token_refill;
-            })
-            .catch(() => {
-                document.getElementById("price-lbl-lite").innerText = "$9.00";
-                document.getElementById("price-lbl-infinite").innerText = "$29.00";
-                document.getElementById("price-lbl-enterprise").innerText = "$199.00";
-                document.getElementById("price-lbl-token").innerText = "$5.00";
-            });
+        function initializePricingMatrix() {
+            const m = geoPricingMatrix.matrix;
+            document.getElementById("price-lbl-lite").innerText = m.symbol + m.lite;
+            document.getElementById("price-lbl-infinite").innerText = m.symbol + m.infinite;
+            document.getElementById("price-lbl-enterprise").innerText = m.symbol + m.enterprise;
+            document.getElementById("price-lbl-token").innerText = m.symbol + m.token_refill;
+        }
 
         function processGateEmail() {
             const mail = document.getElementById("gate-email-field").value.trim();
-            fetch("/api/v1/activate-node", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ session_id: sessionNodeId, email: mail })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "SUCCESS") {
-                    document.getElementById("gate-stage-email").classList.add("hidden");
-                    document.getElementById("gate-stage-plans").classList.remove("hidden");
-                }
-            })
-            .catch(err => {
-                console.error("Authentication node sync failure:", err);
-                const errBox = document.getElementById("gate-error-box");
-                if (errBox) {
-                    errBox.innerText = "Network pipeline connection dropped.";
-                    errBox.classList.remove("hidden");
-                }
-            });
+            if (!mail) return;
+            document.getElementById("gate-stage-email").classList.add("hidden");
+            document.getElementById("gate-stage-plans").classList.remove("hidden");
+            initializePricingMatrix();
         }
 
         function togglePlanTab(target) {
@@ -521,8 +541,10 @@
         }
 
         function selectProductTier(tierKey) {
+            activeSelectedTier = tierKey;
             const wrapper = document.getElementById("payment-gateway-wrapper");
             if(wrapper) wrapper.classList.remove("hidden");
+            
             const wrapperINR = document.getElementById("gateway-inr-upi");
             const wrapperGlobal = document.getElementById("gateway-global-stripe");
             let useINR = geoPricingMatrix && geoPricingMatrix.country === "IN";
@@ -530,26 +552,18 @@
             if (useINR) {
                 if(wrapperINR) wrapperINR.classList.remove("hidden"); 
                 if(wrapperGlobal) wrapperGlobal.classList.add("hidden");
-                let finalAmt = (geoPricingMatrix && geoPricingMatrix.matrix && geoPricingMatrix.matrix[tierKey]) || "299";
-                
-                const qrContainer = document.getElementById("upi-dynamic-qr-container");
-                if(qrContainer) {
-                    qrContainer.innerHTML = `<span class="text-[9px] text-slate-400">Generating Secure QR...</span>`;
-                    
-                    let qrImg = new Image();
-                    qrImg.className = "w-full h-full object-cover";
-                    qrImg.onerror = function() {
-                        qrContainer.innerHTML = `<span class="text-[9px] text-rose-500 font-bold uppercase p-2">QR Generation Error</span>`;
-                    };
-                    qrImg.onload = function() {
-                        qrContainer.innerHTML = "";
-                        qrContainer.appendChild(qrImg);
-                    };
-                    qrImg.src = `/api/v1/generate-qr?tier=${tierKey}&amount=${finalAmt}`;
-                }
             } else {
                 if(wrapperGlobal) wrapperGlobal.classList.remove("hidden"); 
                 if(wrapperINR) wrapperINR.classList.add("hidden");
+            }
+        }
+
+        function redirectToRazorpay() {
+            const targetLink = razorpayLinks[activeSelectedTier];
+            if (targetLink) {
+                window.open(targetLink, '_blank');
+            } else {
+                alert("Invalid configuration link selected.");
             }
         }
 
@@ -570,34 +584,11 @@
             const modal = document.getElementById("history-modal");
             if(!modal) return;
             modal.classList.remove("hidden");
-            fetch(`/api/v1/history/${sessionNodeId}`)
-                .then(res => res.json())
-                .then(data => {
-                    const box = document.getElementById("history-rows-container");
-                    if(!box) return;
-                    box.innerHTML = "";
-                    if (!data.history || data.history.length === 0) {
-                        box.innerHTML = `<div class="text-slate-600 py-3 text-center">No structural builds.</div>`;
-                        return;
-                    }
-                    data.history.forEach((h) => {
-                        const row = document.createElement("div");
-                        row.className = "p-2 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center cursor-pointer mb-2 text-[10px]";
-                        row.innerHTML = `<p class="text-slate-200 truncate max-w-xs">"${h.task}"</p><span class="text-emerald-400 font-bold">Restore</span>`;
-                        row.onclick = function() {
-                            lastReceivedOutput = h.code;
-                            const panel = document.getElementById("sandbox-editor-panel");
-                            if(panel) panel.value = lastReceivedOutput;
-                            updateSandboxMirror(lastReceivedOutput);
-                            document.getElementById("lazy-render-trigger-placeholder").classList.add("hidden");
-                            document.getElementById("blueprint-approval-placeholder").classList.add("hidden");
-                            modal.classList.add("hidden");
-                            activateSmartButtons();
-                        };
-                        box.appendChild(row);
-                    });
-                });
+            const box = document.getElementById("history-rows-container");
+            if(!box) return;
+            box.innerHTML = `<div class="text-slate-600 py-3 text-center">No structural builds.</div>`;
         }
+        
         function closeHistory() { 
             const modal = document.getElementById("history-modal");
             if(modal) modal.classList.add("hidden"); 
