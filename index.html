@@ -55,8 +55,8 @@
 
     <main class="grid grid-cols-1 lg:grid-cols-12 flex-1 w-full overflow-y-auto lg:overflow-hidden min-h-0">
         
-        <section id="pane-console" class="lg:col-span-5 border-r border-slate-900 p-4 flex flex-col min-h-[450px] lg:min-h-0 bg-slate-950">
-            <div class="flex-1 flex flex-col min-h-0 space-y-3">
+        <section id="pane-console" class="lg:col-span-4 border-r border-slate-900 p-4 flex flex-col h-[calc(100vh-80px)] lg:h-full overflow-hidden bg-slate-950">
+            <div class="flex-1 flex flex-col min-h-0 space-y-3 overflow-hidden">
                 <div class="flex items-center justify-between border-b border-slate-900 pb-1.5 shrink-0">
                     <div class="flex items-center space-x-2">
                         <h3 class="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider">Swarm Execution Logs</h3>
@@ -68,37 +68,43 @@
                     <span id="socket-status-dot" class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                 </div>
                 
-                <div id="console-logs" class="flex-1 overflow-y-auto bg-black/20 border border-slate-900 rounded-xl p-3 font-mono text-[11px] space-y-2 min-h-[200px]">
+                <div id="console-logs" class="flex-1 overflow-y-auto bg-black/20 border border-slate-900 rounded-xl p-3 font-mono text-[11px] space-y-2 min-h-0">
                     <div class="text-slate-500">Pipeline Online. Input your complex task requirement or app deployment model below...</div>
                 </div>
             </div>
 
-            <div class="mt-3 pt-2 border-t border-slate-900 shrink-0 bg-slate-950">
-                <div class="relative flex items-center bg-slate-900/40 border border-slate-800 focus-within:border-emerald-500/40 rounded-xl overflow-hidden p-1">
+            <div class="mt-4 pb-4 lg:pb-2 pt-2 border-t border-slate-900 shrink-0 bg-slate-950">
+                <div class="relative flex items-center bg-slate-900/60 border border-slate-800 focus-within:border-emerald-500/40 rounded-xl overflow-hidden p-1 shadow-lg">
                     <textarea id="task-input" rows="2" class="w-full bg-transparent p-2.5 pr-12 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none transition resize-none max-h-32" placeholder="Explain the complex app or autonomous task details you want to build..."></textarea>
-                    <button onclick="initiateSwarmPipeline()" class="absolute right-2 bottom-2 w-8 h-8 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg transition shadow flex items-center justify-center" title="Generate Blueprint Plan">
+                    <button onclick="initiateSwarmPipeline()" class="absolute right-2.5 bottom-2.5 w-8 h-8 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg transition shadow flex items-center justify-center" title="Generate Blueprint Plan">
                         <i class="fa-solid fa-bolt text-xs"></i>
                     </button>
                 </div>
             </div>
         </section>
 
-        <section id="pane-preview" class="hidden lg:col-span-7 bg-slate-950 flex-col min-h-[450px] lg:min-h-0 h-full lg:flex">
+        <section id="pane-preview" class="hidden lg:col-span-8 bg-slate-950 flex flex-col min-h-[500px] lg:min-h-0 h-full lg:flex overflow-hidden">
             
-            <div class="flex items-center justify-between border-b border-slate-900 px-4 py-2 shrink-0 bg-slate-950/90 backdrop-blur">
+            <div class="flex items-center justify-between border-b border-slate-900 px-4 py-3 shrink-0 bg-slate-950/90 backdrop-blur">
                 <div class="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800/80">
-                    <button id="view-mode-mirror" onclick="toggleSandboxView('mirror')" class="px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md bg-slate-950 text-emerald-400 shadow">Live Preview</button>
-                    <button id="view-mode-editor" onclick="toggleSandboxView('editor')" class="px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200">Quick Code Editor</button>
+                    <button id="view-mode-editor" onclick="toggleSandboxView('editor')" class="px-3 py-1.5 text-[10px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200 transition">Code Editor</button>
+                    <button id="view-mode-mirror" onclick="toggleSandboxView('mirror')" class="px-3 py-1.5 text-[10px] font-mono font-bold uppercase rounded-md bg-slate-950 text-emerald-400 shadow transition">Live Preview</button>
                 </div>
                 
-                <div class="flex items-center space-x-2">
-                    <button id="production-deploy-trigger" onclick="executeKrakenProductionDeploy()" disabled class="px-4 py-1.5 bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed font-mono font-bold text-[10px] uppercase rounded-xl transition flex items-center space-x-1.5">
-                        <i class="fa-solid fa-cloud-arrow-up text-[10px]"></i><span>Deploy App</span>
+                <div id="smart-action-controls" class="flex items-center space-x-2">
+                    <button id="copy-code-trigger" onclick="copyGeneratedCode()" disabled class="px-3 py-1.5 bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed font-mono font-bold text-[10px] uppercase rounded-xl transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-copy"></i><span id="copy-btn-text">Copy Code</span>
+                    </button>
+                    <button id="download-code-trigger" onclick="executeKrakenProductionDeploy()" disabled class="px-3 py-1.5 bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed font-mono font-bold text-[10px] uppercase rounded-xl transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-download"></i><span>Download</span>
+                    </button>
+                    <button id="production-deploy-trigger" onclick="alert('Deploying to Cloud Clusters...')" disabled class="px-4 py-1.5 bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed font-mono font-bold text-[10px] uppercase rounded-xl transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-cloud-arrow-up"></i><span>Deploy App</span>
                     </button>
                 </div>
             </div>
             
-            <div class="flex-1 w-full bg-slate-950 overflow-hidden relative min-h-[350px] p-0 m-0 border-0">
+            <div class="flex-1 w-full bg-slate-950 overflow-hidden relative min-h-0 p-0 m-0 border-0 flex flex-col">
                 
                 <div id="blueprint-approval-placeholder" class="hidden absolute inset-0 bg-slate-950/95 z-20 flex flex-col items-center justify-center p-6 text-center space-y-4 font-mono">
                     <div class="w-12 h-12 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
@@ -124,9 +130,9 @@
                     </div>
                 </div>
                 
-                <iframe id="sandbox-mirror" class="w-full h-full border-none bg-transparent m-0 p-0" sandbox="allow-scripts allow-modals allow-forms"></iframe>
+                <iframe id="sandbox-mirror" class="w-full flex-1 border-none bg-slate-900/10 m-0 p-0 h-full" sandbox="allow-scripts allow-modals allow-forms"></iframe>
                 
-                <textarea id="sandbox-editor-panel" oninput="syncEditorToMirrorPreview()" class="hidden absolute inset-0 w-full h-full bg-slate-950 text-slate-300 font-mono text-xs p-4 focus:outline-none resize-none border-none m-0 rounded-none" placeholder=""></textarea>
+                <textarea id="sandbox-editor-panel" oninput="syncEditorToMirrorPreview()" class="hidden absolute inset-0 w-full h-full bg-slate-900 text-emerald-400 font-mono text-xs p-5 focus:outline-none resize-none border-none m-0 rounded-none leading-relaxed tracking-wide shadow-inner" placeholder=""></textarea>
             </div>
         </section>
     </main>
@@ -262,11 +268,8 @@
                         
                         updateSandboxMirror(lastReceivedOutput);
                         
-                        const dBtn = document.getElementById("production-deploy-trigger");
-                        if (dBtn) {
-                            dBtn.disabled = false;
-                            dBtn.className = "px-4 py-1.5 bg-slate-900 text-emerald-400 border border-emerald-500/30 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow cursor-pointer animate-pulse";
-                        }
+                        // Activate all task buttons dynamically once code is successfully ready
+                        activateSmartButtons();
 
                         if (window.innerWidth < 1024) switchMobileTab('preview');
                     }
@@ -284,6 +287,39 @@
                 let currentDelay = Math.min(2000 * Math.pow(1.5, reconnectAttempts), maxReconnectDelay);
                 setTimeout(connectWebSocket, currentDelay);
             };
+        }
+
+        // Activation helper for dynamic button states
+        function activateSmartButtons() {
+            const btnCopy = document.getElementById("copy-code-trigger");
+            const btnDownload = document.getElementById("download-code-trigger");
+            const btnDeploy = document.getElementById("production-deploy-trigger");
+
+            if(btnCopy) {
+                btnCopy.disabled = false;
+                btnCopy.className = "px-3 py-1.5 bg-slate-900 text-emerald-400 border border-emerald-500/30 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow cursor-pointer hover:bg-slate-800";
+            }
+            if(btnDownload) {
+                btnDownload.disabled = false;
+                btnDownload.className = "px-3 py-1.5 bg-slate-900 text-emerald-400 border border-emerald-500/30 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow cursor-pointer hover:bg-slate-800";
+            }
+            if(btnDeploy) {
+                btnDeploy.disabled = false;
+                btnDeploy.className = "px-4 py-1.5 bg-emerald-500 text-slate-950 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow cursor-pointer hover:bg-emerald-400 animate-pulse";
+            }
+        }
+
+        function copyGeneratedCode() {
+            if (!lastReceivedOutput) return;
+            navigator.clipboard.writeText(lastReceivedOutput).then(() => {
+                const btnText = document.getElementById("copy-btn-text");
+                if(btnText) {
+                    btnText.innerText = "Copied!";
+                    setTimeout(() => { btnText.innerText = "Copy Code"; }, 2000);
+                }
+            }).catch(err => {
+                alert("Failed to copy code: " + err);
+            });
         }
 
         function appendSystemLog(agent, text) {
@@ -358,17 +394,16 @@
             if (mode === 'mirror') {
                 mirrorFrame.classList.remove("hidden");
                 editorTextarea.classList.add("hidden");
-                if(btnMirror) btnMirror.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md bg-slate-950 text-emerald-400 shadow";
-                if(btnEditor) btnEditor.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200";
+                if(btnMirror) btnMirror.className = "px-3 py-1.5 text-[10px] font-mono font-bold uppercase rounded-md bg-slate-950 text-emerald-400 shadow transition";
+                if(btnEditor) btnEditor.className = "px-3 py-1.5 text-[10px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200 transition";
             } else {
                 editorTextarea.classList.remove("hidden");
                 mirrorFrame.classList.add("hidden");
-                if(btnEditor) btnEditor.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md bg-slate-950 text-emerald-400 shadow";
-                if(btnMirror) btnMirror.className = "px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200";
+                if(btnEditor) btnEditor.className = "px-3 py-1.5 text-[10px] font-mono font-bold uppercase rounded-md bg-slate-950 text-emerald-400 shadow transition";
+                if(btnMirror) btnMirror.className = "px-3 py-1.5 text-[10px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200 transition";
             }
         }
 
-        // BUG FIX 1: Two-Way State updates mirror directly when code editor modifications are injected
         function syncEditorToMirrorPreview() {
             const panel = document.getElementById("sandbox-editor-panel");
             if (!panel) return;
@@ -391,7 +426,6 @@
             }
         }
 
-        // BUG FIX 2: Fixed layout collapsing on desktop window switches/resizes by handling lg flex/hidden conflict rules
         function switchMobileTab(target) {
             const consolePane = document.getElementById("pane-console");
             const previewPane = document.getElementById("pane-preview");
@@ -417,7 +451,6 @@
             }
         }
 
-        // Handle native window reset fallback layout configurations
         window.addEventListener('resize', function() {
             const consolePane = document.getElementById("pane-console");
             const previewPane = document.getElementById("pane-preview");
@@ -487,7 +520,6 @@
             }
         }
 
-        // BUG FIX 3: Strict element extraction handles exception fallback states when handling live endpoints
         function selectProductTier(tierKey) {
             const wrapper = document.getElementById("payment-gateway-wrapper");
             if(wrapper) wrapper.classList.remove("hidden");
@@ -560,6 +592,7 @@
                             document.getElementById("lazy-render-trigger-placeholder").classList.add("hidden");
                             document.getElementById("blueprint-approval-placeholder").classList.add("hidden");
                             modal.classList.add("hidden");
+                            activateSmartButtons();
                         };
                         box.appendChild(row);
                     });
@@ -570,7 +603,6 @@
             if(modal) modal.classList.add("hidden"); 
         }
 
-        // BUG FIX 0: DOM Lifecycle Execution Block wrapper securely initialises socket listener
         document.addEventListener("DOMContentLoaded", function() {
             connectWebSocket();
         });
