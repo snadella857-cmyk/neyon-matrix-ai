@@ -1,4 +1,4 @@
-Import os
+import os
 import re
 import json
 import asyncio
@@ -39,10 +39,10 @@ except ImportError:
 logger = logging.getLogger("kraken_swarm_production")
 logging.basicConfig(level=logging.INFO)
 
-#  ENVIRONMENT SETUP - SECURE FALLBACKS
+# 🔐 ENVIRONMENT SETUP - SECURE FALLBACKS (UPDATED WITH CORRECT ENDPOINT)
 DATABASE_URL_ENV = os.getenv("DATABASE_URL")
 if not DATABASE_URL_ENV:
-    DATABASE_URL_ENV = "postgresql://neondb_owner:npg_fAGLjuH5xJd8@ep-fancy-meadow-ajdpi2bm-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require"
+    DATABASE_URL_ENV = "postgresql://neondb_owner:npg_fAGLjuH5xJd8@ep-fancy-meadow-ajdpi2bm.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require"
 
 RAW_DB_URL = DATABASE_URL_ENV
 SECONDARY_DB_URL = os.getenv("SECONDARY_DATABASE_URL", RAW_DB_URL)
@@ -57,7 +57,7 @@ http_client = None
 # --- IN-MEMORY CACHE FOR LIVE PREVIEWS ---
 PREVIEW_CACHE: Dict[str, str] = {}
 
-#  CHARACTER LIMITS & QUOTA MANAGEMENT
+# 📊 CHARACTER LIMITS & QUOTA MANAGEMENT
 PLAN_SAFETY_LIMITS = {
     "free": {
         "max_chars": 600,
@@ -91,13 +91,13 @@ class KrakenDBSyncPayload(BaseModel):
     store_name: str
     payload_data: dict
 
-#  DISCORD LOGGING INTEGRATION
+# 📢 DISCORD LOGGING INTEGRATION
 async def log_to_discord(agent_name: str, message: str, status: str = "INFO"):
     if not DISCORD_WEBHOOK_URL or not http_client:
         return
     payload = {
         "embeds": [{
-            "title": f" Kraken Swarm Update - {agent_name}",
+            "title": f"📢 Kraken Swarm Update - {agent_name}",
             "description": message[:1900],
             "color": {"INFO": 3447003, "SUCCESS": 3066993, "ERROR": 15158332}.get(status, 3447003),
             "footer": {"text": "Kraken Enterprise Swarm Engine"}
@@ -108,9 +108,8 @@ async def log_to_discord(agent_name: str, message: str, status: str = "INFO"):
     except Exception as e:
         logger.error(f"Failed to push update to Discord: {e}")
 
-# CPU-BOUND PROCESSING WRAPPER FOR QR/PILLOW (JAD SE FIX)
+# CPU-BOUND PROCESSING WRAPPER FOR QR/PILLOW
 def execute_cpu_heavy_image_task(data_content: str) -> io.BytesIO:
-    """Safe blocking core visual generator isolated via thread pools"""
     if not HAS_IMAGE_PROCESSING:
         raise RuntimeError("Image/QR processing libraries missing on runtime ecosystem.")
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
@@ -118,7 +117,6 @@ def execute_cpu_heavy_image_task(data_content: str) -> io.BytesIO:
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white").convert('RGB')
     
-    # Simple Pillow optimization operation to verify pipeline health
     img = img.resize((300, 300), Image.Resampling.LANCZOS)
     
     buf = io.BytesIO()
@@ -126,7 +124,7 @@ def execute_cpu_heavy_image_task(data_content: str) -> io.BytesIO:
     buf.seek(0)
     return buf
 
-#  FIX 1: MIDNIGHT CRYPTO RESET CRON TASK BACKGROUND LOOP
+# 🔄 MIDNIGHT CRYPTO RESET CRON TASK BACKGROUND LOOP
 async def daily_query_reset_scheduler():
     while True:
         try:
@@ -135,18 +133,18 @@ async def daily_query_reset_scheduler():
             midnight = datetime.datetime.combine(tomorrow, datetime.time.min, tzinfo=datetime.timezone.utc)
             seconds_until_midnight = (midnight - now).total_seconds()
             
-            logger.info(f" Midnight scheduler sleeping for {seconds_until_midnight} seconds until next reset loop.")
+            logger.info(f"Midnight scheduler sleeping for {seconds_until_midnight} seconds until next reset loop.")
             await asyncio.sleep(max(seconds_until_midnight, 1.0))
             
             if db_pool:
                 async with db_pool.acquire() as conn:
                     await conn.execute("UPDATE user_vault SET queries_used_today = 0;")
-                logger.info(" System-wide Reset triggered successfully: queries_used_today updated to 0 for all tiers.")
+                logger.info("System-wide Reset triggered successfully: queries_used_today updated to 0 for all tiers.")
                 
         except asyncio.CancelledError:
             break
         except Exception as ce:
-            logger.error(f" Midnight scheduler pipeline loop error: {ce}")
+            logger.error(f"Midnight scheduler pipeline loop error: {ce}")
             await asyncio.sleep(60)
 
 async def initialize_db_tables():
@@ -178,13 +176,13 @@ async def initialize_db_tables():
                         CREATE INDEX IF NOT EXISTS idx_email ON user_vault(email);
                         CREATE INDEX IF NOT EXISTS idx_krakendb_sess ON krakendb_sync(session_id);
                     ''')
-                logger.info(" Core Platform Tables & KrakenDB Sync Engine checked/created successfully.")
+                logger.info("Core Platform Tables & KrakenDB Sync Engine checked/created successfully.")
                 break
         except Exception as e:
-            logger.warning(f" Table initialization attempt {attempt+1} failed: {e}. Retrying...")
+            logger.warning(f"Table initialization attempt {attempt+1} failed: {e}. Retrying...")
             await asyncio.sleep(2)
 
-# MODERN FASTAPI LIFESPAN WITH OPTIMIZED ASYNCPG POOLS
+# FIXED: LIFESPAN WITH CRASH PROTECTION ON DATABASE HANDSHAKE
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global db_pool, secondary_db_pool, redis_client, http_client
@@ -204,27 +202,29 @@ async def lifespan(app: FastAPI):
     if aioredis and REDIS_URL:
         try:
             redis_client = aioredis.from_url(REDIS_URL, decode_responses=True, socket_timeout=5.0, socket_connect_timeout=5.0)
-            logger.info(" Redis Client handle prepared synchronously.")
+            logger.info("Redis Client handle prepared synchronously.")
         except Exception as ree:
-            logger.error(f" Redis client configuration failure: {ree}")
+            logger.error(f"Redis client configuration failure: {ree}")
 
     if target_db_url:
         try:
-            logger.info(" Connecting to Remote primary database cluster...")
-            # Optimized pool scaling bounds to ensure zero exhaustion during microservice spikes
-            db_pool = await asyncpg.create_pool(target_db_url, min_size=2, max_size=10, timeout=15.0, command_timeout=15.0)
-            logger.info(" Primary Database connection pool initialized.")
+            logger.info("Connecting to Remote primary database cluster...")
+            # SAFE CONNECTION BOUNDS: Handshake timeouts reduced to 5s to prevent boot freeze crashes
+            db_pool = await asyncpg.create_pool(target_db_url, min_size=1, max_size=5, timeout=5.0, command_timeout=5.0)
+            logger.info("Primary Database connection pool initialized.")
             asyncio.create_task(initialize_db_tables())
             asyncio.create_task(daily_query_reset_scheduler())
         except Exception as dbe:
-            logger.error(f" CRITICAL PRIMARY DB CONNECTION DELAY: {dbe}.")
+            logger.error(f"CRITICAL PRIMARY DB TIMEOUT BUT SERVING INTERFACE: {dbe}.")
+            db_pool = None  # Prevents server loop from crashing out completely
             
     if target_sec_url and target_sec_url != target_db_url:
         try:
-            secondary_db_pool = await asyncpg.create_pool(target_sec_url, min_size=1, max_size=4, timeout=15.0)
-            logger.info(" Secondary Database connection pool initialized.")
+            secondary_db_pool = await asyncpg.create_pool(target_sec_url, min_size=1, max_size=2, timeout=5.0)
+            logger.info("Secondary Database connection pool initialized.")
         except Exception as sdbe:
-            logger.error(f" SECONDARY DB CONNECTION DELAY: {sdbe}.")
+            logger.error(f"SECONDARY DB CONNECTION DELAY: {sdbe}.")
+            secondary_db_pool = None
     
     yield
     
@@ -236,26 +236,24 @@ async def lifespan(app: FastAPI):
         await redis_client.close()
     if http_client:
         await http_client.aclose()
-    logger.info(" System resources shutdown successfully.")
+    logger.info("System resources shutdown successfully.")
 
 app = FastAPI(title="Kraken Swarm Engine", lifespan=lifespan)
 
-# --- ENGINE IMAGE COMPILATION ENDPOINT (SAFE THREAD BOUNDARY EXECUTION) ---
+# --- ENGINE IMAGE COMPILATION ENDPOINT ---
 @app.get("/api/v1/generate-qr-node")
 async def get_sandbox_qr_node(content: str = "Kraken Swarm"):
-    """Thread-pool-safe execution preventing any event loop starvation locks"""
     if not HAS_IMAGE_PROCESSING:
         raise HTTPException(status_code=501, detail="Core system image components unconfigured.")
     try:
         loop = asyncio.get_running_loop()
-        # Offload CPU execution away from main thread context safely
         image_buffer = await loop.run_in_executor(None, execute_cpu_heavy_image_task, content)
         return StreamingResponse(image_buffer, media_type="image/png")
     except Exception as runtime_img_err:
         logger.error(f"Image compilation crash: {runtime_img_err}")
         raise HTTPException(status_code=500, detail="Visual system stream rendering error.")
 
-# ---  REAL-TIME CLOUD-SYNCED KRAKENDB ---
+# --- REAL-TIME CLOUD-SYNCED KRAKENDB ---
 @app.post("/api/v1/krakendb/sync")
 async def sync_krakendb(payload: KrakenDBSyncPayload):
     if not db_pool:
@@ -303,7 +301,7 @@ async def get_krakendb_sync(session_id: str):
         logger.error(f"KrakenDB read error: {e}")
         raise HTTPException(status_code=500, detail="State query failure.")
 
-# ---  LIVE SANDBOX PREVIEW ENDPOINT ---
+# --- LIVE SANDBOX PREVIEW ENDPOINT ---
 @app.get("/api/v1/preview/{session_id}", response_class=HTMLResponse)
 async def live_sandbox_preview(session_id: str):
     if session_id in PREVIEW_CACHE:
@@ -321,7 +319,7 @@ async def live_sandbox_preview(session_id: str):
                         if user["tier"] == "free":
                             paywall_banner = """
                             <div style="position:fixed; bottom:0; left:0; right:0; background:linear-gradient(to right, #e11d48, #be123c); color:white; text-align:center; padding:12px; font-family:sans-serif; font-weight:bold; z-index:99999; box-shadow: 0 -4px 10px rgba(0,0,0,0.3);">
-                                 Free Preview Sandbox Mode. Deployment, Downloads, and Coding Adjustments are Locked. 
+                                 Free Preview Sandbox Mode. Deployment, Downloads, and Coding Adjustments are Locked. 
                                 <button onclick="window.parent.postMessage('trigger_razorpay_modal', '*')" style="background:white; color:#be123c; border:none; padding:6px 16px; margin-left:15px; border-radius:6px; font-weight:bold; cursor:pointer;">Upgrade to Pro Plans</button>
                             </div>
                             """
@@ -333,7 +331,7 @@ async def live_sandbox_preview(session_id: str):
             
     return HTMLResponse(content="<h3>Sandbox preview session not active or has been cleared.</h3>", status_code=404)
 
-# ---  EXPORT ZIP API ENDPOINT ---
+# --- EXPORT ZIP API ENDPOINT ---
 @app.get("/api/v1/export/{session_id}")
 async def export_project_zip(session_id: str):
     if not db_pool:
@@ -344,7 +342,7 @@ async def export_project_zip(session_id: str):
         if not user:
             raise HTTPException(status_code=404, detail="Session node not tracked.")
         if user["tier"] == "free":
-            raise HTTPException(status_code=402, detail=" Exporting source code ZIP structures is exclusive to premium users.")
+            raise HTTPException(status_code=402, detail=" Exporting source code ZIP structures is exclusive to premium users.")
             
         content = ""
         if session_id in PREVIEW_CACHE:
@@ -396,7 +394,7 @@ async def serve_dashboard():
             const userEmail = prompt("Enter your verified Google Account Email address:");
             if(!userEmail || !userEmail.includes("@")) {
                 statusMsg.className = "mt-4 text-sm font-medium text-red-400";
-                statusMsg.innerText = " Invalid email configuration mapping.";
+                statusMsg.innerText = " Invalid email configuration mapping.";
                 return;
             }
             try {
@@ -413,15 +411,15 @@ async def serve_dashboard():
                 const data = await response.json();
                 if(response.ok) {
                     statusMsg.className = "mt-4 text-sm font-medium text-green-400";
-                    statusMsg.innerText = " Verification Confirmed: Single Lifetime Free Run initialized!";
+                    statusMsg.innerText = " Verification Confirmed: Single Lifetime Free Run initialized!";
                     localStorage.setItem("kraken_active_session", mockSessionId);
                 } else {
                     statusMsg.className = "mt-4 text-sm font-medium text-red-400";
-                    statusMsg.innerText = data.detail || " Quota mapping failed.";
+                    statusMsg.innerText = data.detail || " Quota mapping failed.";
                 }
             } catch(e) {
                 statusMsg.className = "mt-4 text-sm font-medium text-red-400";
-                statusMsg.innerText = " Network handshake error.";
+                statusMsg.innerText = " Network handshake error.";
             }
         }
         </script>
@@ -438,7 +436,7 @@ async def activate_node(payload: ActivationPayload):
     email = payload.email.lower().strip()
     domain = email.split("@")[-1] if "@" in email else ""
     if domain in DISPOSABLE_DOMAINS or not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-        raise HTTPException(status_code=400, detail=" Professional or authenticated email networks only.")
+        raise HTTPException(status_code=400, detail=" Professional or authenticated email networks only.")
     
     tz = payload.browser_timezone.lower()
     arbitrage_risk = False
@@ -447,11 +445,11 @@ async def activate_node(payload: ActivationPayload):
         async with db_pool.acquire() as conn:
             email_check = await conn.fetchrow("SELECT * FROM user_vault WHERE email = $1 AND free_tier_claimed = TRUE", email)
             if email_check:
-                raise HTTPException(status_code=403, detail=" Access Denied: Lifetime free quota pehle hi claim kiya ja chuka hai.")
+                raise HTTPException(status_code=403, detail=" Access Denied: Lifetime free quota pehle hi claim kiya ja chuka hai.")
 
             fingerprint_check = await conn.fetchrow("SELECT * FROM user_vault WHERE device_hash = $1 AND free_tier_claimed = TRUE", payload.device_fingerprint)
             if fingerprint_check:
-                raise HTTPException(status_code=403, detail=" Access Denied: Device profile signature duplicate match.")
+                raise HTTPException(status_code=403, detail=" Access Denied: Device profile signature duplicate match.")
 
             user = await conn.fetchrow("SELECT * FROM user_vault WHERE session_id = $1", payload.session_id)
             if "asia/calcutta" not in tz and "kolkata" not in tz and user and user.get("detected_country") == "IN":
@@ -513,7 +511,7 @@ async def get_history(session_id: str):
         logger.error(f"History routing exception: {e}")
         return {"tier": "free", "history": [], "error": "Internal synchronization error"}
 
-# ---  ADVANCED DUAL-LLM ROUTING ---
+# --- ADVANCED DUAL-LLM ROUTING ---
 async def call_gemini_agent(agent_name: str, system_instruction: str, user_prompt: str) -> str:
     if not http_client:
         return f"[{agent_name} Core Simulation Output]: Bypass mode active."
@@ -532,7 +530,7 @@ async def call_gemini_agent(agent_name: str, system_instruction: str, user_promp
                 if "candidates" in res_data and len(res_data["candidates"]) > 0:
                     return res_data["candidates"][0]["content"]["parts"][0].get("text", "")
         except Exception as e:
-            logger.warning(f" Primary Endpoint [Gemini] failure: {e}. Fallback mode tracking...")
+            logger.warning(f"Primary Endpoint [Gemini] failure: {e}. Fallback mode tracking...")
             continue
 
     for r_key in openrouter_keys:
@@ -549,12 +547,12 @@ async def call_gemini_agent(agent_name: str, system_instruction: str, user_promp
                 if "choices" in res_data and len(res_data["choices"]) > 0:
                     return res_data["choices"][0]["message"]["content"]
         except Exception as e:
-            logger.warning(f" Secondary Endpoint [OpenRouter] failure: {e}.")
+            logger.warning(f"Secondary Endpoint [OpenRouter] failure: {e}.")
             continue
 
     return f"[{agent_name} Output]: System workspace simulation processed dynamically."
 
-# ---  ERROR SELF-HEALING ENGINE ---
+# --- ERROR SELF-HEALING ENGINE ---
 async def self_heal_output_code(raw_code: str) -> str:
     healed = raw_code.strip()
     html_match = re.search(r"(<html.*?>.*?</html>|<!DOCTYPE.*?>.*?</html>)", healed, re.DOTALL | re.IGNORECASE)
@@ -610,14 +608,14 @@ async def process_async_agents_pipeline(user_task: str, combined_context_dict: d
             await websocket.send_json({"agent": agent["name"], "log": f"Launching Swarm Agent [{idx}/5]..."})
             await call_gemini_agent(agent["name"], agent["prompt"], user_task)
             combined_context_dict[agent["name"]] = f"Processed under {tier} tier specifications."
-            await websocket.send_json({"agent": agent["name"], "log": f" Agent [{idx}/5] verified."})
+            await websocket.send_json({"agent": agent["name"], "log": f" Agent [{idx}/5] verified."})
             await asyncio.sleep(0.5 * speed_factor)
         except Exception as ae:
             combined_context_dict[agent["name"]] = f"Bypass state: {ae}"
 
     await asyncio.gather(*(run_single_agent(i + 1, a) for i, a in enumerate(agents_pipeline)))
 
-# ---  WEBSOCKET SWARM ORCHESTRATOR ---
+# --- WEBSOCKET SWARM ORCHESTRATOR ---
 @app.websocket("/ws/v1/swarm-orchestrator/{session_id}")
 async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
     await websocket.accept()
@@ -634,7 +632,7 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                     free_claimed = user["free_tier_claimed"]
                     queries_used = user["queries_used_today"] if user["queries_used_today"] is not None else 0
         except Exception as err:
-            logger.error(f" Exception inside DB Handshake: {err}")
+            logger.error(f"Exception inside DB Handshake: {err}")
             
     try:
         await websocket.send_json({"tier": tier, "status": "CONNECTED"})
@@ -657,15 +655,15 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                 continue
 
             if tier == "free" and (queries_used >= PLAN_SAFETY_LIMITS["free"]["max_daily_queries"]):
-                await websocket.send_json({"agent": "Kraken Paywall Director", "log": " Access Denied: Lifetime free trial exhaust ho chuka hai."})
+                await websocket.send_json({"agent": "Kraken Paywall Director", "log": " Access Denied: Lifetime free trial exhaust ho chuka hai."})
                 continue
 
             if tier == "free" and (len(user_task) > PLAN_SAFETY_LIMITS["free"]["max_chars"] or len(edit_instruction) > PLAN_SAFETY_LIMITS["free"]["max_chars"]):
-                await websocket.send_json({"agent": "Kraken Swarm Director", "log": " Limit Exceeded: Free character limits maximum rule hit."})
+                await websocket.send_json({"agent": "Kraken Swarm Director", "log": " Limit Exceeded: Free character limits maximum rule hit."})
                 continue
 
             if edit_instruction and tier == "free":
-                await websocket.send_json({"agent": "Kraken Paywall Director", "log": " Feature Locked: Upgrades required for pipeline edits."})
+                await websocket.send_json({"agent": "Kraken Paywall Director", "log": " Feature Locked: Upgrades required for pipeline edits."})
                 continue
 
             try:
@@ -674,7 +672,7 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                         queries_used += 1
                         await conn.execute("UPDATE user_vault SET free_tier_claimed = TRUE, queries_used_today = $1 WHERE session_id = $2", queries_used, session_id)
             except Exception as db_mod_err:
-                logger.error(f" Error updating database logs: {db_mod_err}")
+                logger.error(f"Error updating database logs: {db_mod_err}")
 
             if edit_instruction:
                 existing_html = PREVIEW_CACHE.get(session_id, "")
@@ -695,7 +693,7 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
 
             if not is_approved:
                 blueprint_plan = await call_gemini_agent("Blueprint Engine", "Build layout maps implementation roadmap.", user_task)
-                await websocket.send_json({"agent": "Blueprint Engine", "blueprint_structure": blueprint_plan, "log": " Blueprint validated."})
+                await websocket.send_json({"agent": "Blueprint Engine", "blueprint_structure": blueprint_plan, "log": " Blueprint validated."})
                 continue
 
             if tier == "free":
@@ -736,12 +734,12 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
             await websocket.send_json({"tier": tier, "preview_url": f"/api/v1/preview/{session_id}", "result_data": {"status": "SUCCESS"}})
             
     except WebSocketDisconnect:
-        logger.info(f" WebSocket disconnected safely: {session_id}")
+        logger.info(f"WebSocket disconnected safely: {session_id}")
     except Exception as e:
-        logger.error(f" Swarm Edge Fatal Exception: {str(e)}")
+        logger.error(f"Swarm Edge Fatal Exception: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "10000"))
-    print(f" KRAKEN SWARM PRODUCTION CORE ONLINE ON PORT: {port}")
+    print(f"KRAKEN SWARM PRODUCTION CORE ONLINE ON PORT: {port}")
     uvicorn.run(app, host="0.0.0.0", port=port, reload=False)
