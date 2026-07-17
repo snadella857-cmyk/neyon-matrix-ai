@@ -58,9 +58,9 @@
         </button>
     </div>
 
-    <main class="flex-1 flex flex-col w-full overflow-hidden min-h-0 m-0 p-0">
+    <main class="flex-1 flex flex-col lg:grid lg:grid-cols-2 w-full overflow-hidden min-h-0 m-0 p-0">
         
-        <section id="pane-console" class="w-full flex-1 p-4 flex flex-col h-full overflow-hidden bg-slate-950 m-0 border-none">
+        <section id="pane-console" class="w-full flex flex-col h-full overflow-hidden bg-slate-950 p-4 border-r border-slate-900/50">
             <div class="flex-1 flex flex-col min-h-0 space-y-3 overflow-hidden w-full">
                 <div class="flex items-center justify-between border-b border-slate-900 pb-1.5 shrink-0 w-full">
                     <div class="flex items-center space-x-2">
@@ -86,30 +86,30 @@
             <div class="w-full mt-3 pb-2 pt-2 border-t border-slate-900 shrink-0 bg-slate-950 space-y-2">
                 
                 <div id="ready-suggestions-tags" class="flex flex-row items-center gap-2 pt-1 w-full overflow-x-auto whitespace-nowrap pb-1">
-                    <button type="button" onclick="handleQuickTagClick(' Build a SaaS Website')" class="text-[9px] font-mono font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-800 active:scale-95 transition-all duration-150 shrink-0 w-auto">
-                         Build a SaaS Website
+                    <button type="button" id="tag-saas" onclick="handleQuickTagClick('⚡ Build a SaaS Website')" class="text-[9px] font-mono font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-800 active:scale-95 transition-all duration-150 shrink-0 w-auto">
+                        ⚡ Build a SaaS Website
                     </button>
-                    <button type="button" onclick="handleQuickTagClick(' Create Landing Page')" class="text-[9px] font-mono font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-800 active:scale-95 transition-all duration-150 shrink-0 w-auto">
-                         Create Landing Page
+                    <button type="button" id="tag-landing" onclick="handleQuickTagClick('⚡ Create Landing Page')" class="text-[9px] font-mono font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-800 active:scale-95 transition-all duration-150 shrink-0 w-auto">
+                        ⚡ Create Landing Page
                     </button>
-                    <button type="button" onclick="handleQuickTagClick(' E-commerce System')" class="text-[9px] font-mono font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-800 active:scale-95 transition-all duration-150 shrink-0 w-auto">
-                         E-commerce System
+                    <button type="button" id="tag-ecommerce" onclick="handleQuickTagClick('⚡ E-commerce System')" class="text-[9px] font-mono font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-800 active:scale-95 transition-all duration-150 shrink-0 w-auto">
+                        ⚡ E-commerce System
                     </button>
-                    <button type="button" onclick="handleQuickTagClick(' Portfolio Platform')" class="text-[9px] font-mono font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-800 active:scale-95 transition-all duration-150 shrink-0 w-auto">
-                         Portfolio Platform
+                    <button type="button" id="tag-portfolio" onclick="handleQuickTagClick('⚡ Portfolio Platform')" class="text-[9px] font-mono font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-800 active:scale-95 transition-all duration-150 shrink-0 w-auto">
+                        ⚡ Portfolio Platform
                     </button>
                 </div>
 
                 <div class="relative flex items-center bg-slate-900/60 border border-slate-800 focus-within:border-emerald-500/40 rounded-xl overflow-hidden p-1 shadow-lg w-full mx-auto">
                     <textarea id="task-input" rows="2" oninput="autoExpandPromptField(this)" class="w-full bg-transparent p-2.5 pr-12 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none transition resize-none max-h-32" placeholder="Apna business idea ya topic likhein, jaise: 'E-commerce store ke liye Next.js website build karna'..."></textarea>
-                    <button onclick="initiateSwarmPipeline()" class="absolute right-2.5 bottom-2.5 w-8 h-8 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg transition shadow flex items-center justify-center" title="Generate Blueprint Plan">
-                        <i class="fa-solid fa-bolt text-xs"></i>
+                    <button id="pipeline-submit-btn" onclick="initiateSwarmPipeline()" class="absolute right-2.5 bottom-2.5 w-8 h-8 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg transition shadow flex items-center justify-center" title="Generate Blueprint Plan">
+                        <i id="pipeline-submit-icon" class="fa-solid fa-bolt text-xs"></i>
                     </button>
                 </div>
             </div>
         </section>
 
-        <section id="pane-preview" class="hidden bg-slate-950 flex flex-col h-full overflow-hidden w-full m-0 border-none">
+        <section id="pane-preview" class="hidden lg:flex bg-slate-950 flex-col h-full overflow-hidden w-full m-0 border-none">
             
             <div class="flex items-center justify-between border-b border-slate-900 px-4 py-3 shrink-0 bg-slate-950/90 backdrop-blur w-full">
                 <div class="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800/80">
@@ -141,7 +141,7 @@
                         <div id="blueprint-details-box" class="w-full text-left bg-black/40 border border-slate-900 p-3 rounded-xl max-h-36 overflow-y-auto text-[10px] text-slate-300 space-y-1">
                         </div>
                     </div>
-                    <button onclick="approveBlueprintAndBuild()" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold font-mono text-xs uppercase rounded-xl shadow transition flex items-center space-x-2">
+                    <button id="blueprint-launch-btn" onclick="approveBlueprintAndBuild()" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold font-mono text-xs uppercase rounded-xl shadow transition flex items-center space-x-2">
                         <i class="fa-solid fa-circle-check text-[11px]"></i><span>Approve & Launch Swarm</span>
                     </button>
                 </div>
@@ -178,21 +178,21 @@
                 <div id="box-monthly-plans" class="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <div onclick="selectProductTier('lite')" class="border border-slate-900 bg-slate-900/20 p-2.5 rounded-xl cursor-pointer hover:border-slate-800 transition text-[10px]">
                         <p class="font-bold text-slate-300">Lite (3k words / 20 logs)</p>
-                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-lite">499</div>
+                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-lite">499</div>
                     </div>
                     <div onclick="selectProductTier('infinite')" class="border border-emerald-500/30 bg-emerald-500/5 p-2.5 rounded-xl cursor-pointer transition text-[10px]">
                         <p class="font-bold text-slate-200">Infinite Swarm</p>
-                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-infinite">999</div>
+                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-infinite">999</div>
                     </div>
                     <div onclick="selectProductTier('enterprise')" class="border border-slate-900 bg-slate-900/20 p-2.5 rounded-xl cursor-pointer hover:border-slate-800 transition text-[10px]">
                         <p class="font-bold text-slate-300">Enterprise Cluster</p>
-                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-enterprise">3999</div>
+                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-enterprise">3999</div>
                     </div>
                 </div>
                 <div id="box-token-plans" class="hidden">
                     <div onclick="selectProductTier('token_refill')" class="border border-amber-500/30 bg-amber-500/5 p-3 rounded-xl cursor-pointer transition flex justify-between items-center text-[10px]">
                         <p class="font-bold text-amber-400">Casual Credit Stack</p>
-                        <div class="text-sm font-bold text-amber-400" id="price-lbl-token">50</div>
+                        <div class="text-sm font-bold text-amber-400" id="price-lbl-token">50</div>
                     </div>
                 </div>
                 <div id="payment-gateway-wrapper" class="hidden bg-slate-900/60 border border-slate-900 p-3 rounded-xl text-center space-y-2">
@@ -232,13 +232,26 @@
 
         let socket;
         const wsProto = window.location.protocol === "https:" ? "wss://" : "ws://";
-        const wsUrl = wsProto + window.location.host + "/ws/v1/swarm-orchestrator/" + sessionNodeId;
+        const wsUrl = wsProto + window.location.host + "/ws/v1/swarm-orchestrator/" + sessionNodeId + "?session_id=" + sessionNodeId;
         
-        let geoPricingMatrix = { country: "IN", matrix: { symbol: "", lite: "499", infinite: "999", enterprise: "3999", token_refill: "50" } };
+        let geoPricingMatrix = { country: "IN", matrix: { symbol: "₹", lite: "499", infinite: "999", enterprise: "3999", token_refill: "50" } };
         let lastReceivedOutput = "";
         let currentPromptTask = "";
         let reconnectAttempts = 0;
         const maxReconnectDelay = 15000;
+        let isSwarmRunning = false;
+
+        window.addEventListener("message", function(event) {
+            if (event.data && event.data.type === "KRAKENDB_SYNC_PAYLOAD") {
+                console.log("Internal sandbox event injected smoothly:", event.data.payload);
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        sync_gateway_action: "/api/v1/krakendb/sync",
+                        custom_payload: event.data.payload
+                    }));
+                }
+            }
+        });
 
         function autoExpandPromptField(element) {
             element.style.height = 'auto';
@@ -246,12 +259,39 @@
         }
 
         function handleQuickTagClick(tagValue) {
+            if (isSwarmRunning) return;
             const textarea = document.getElementById('task-input');
             if (!textarea) return;
             textarea.value = tagValue;
             autoExpandPromptField(textarea);
             textarea.focus();
             textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        }
+
+        function setPipelineLockState(locked) {
+            isSwarmRunning = locked;
+            const textarea = document.getElementById('task-input');
+            const submitBtn = document.getElementById('pipeline-submit-btn');
+            const submitIcon = document.getElementById('pipeline-submit-icon');
+            const blueprintBtn = document.getElementById('blueprint-launch-btn');
+            
+            const tags = ['tag-saas', 'tag-landing', 'tag-ecommerce', 'tag-portfolio'];
+            tags.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.disabled = locked;
+            });
+
+            if (textarea) textarea.disabled = locked;
+            if (submitBtn) submitBtn.disabled = locked;
+            if (blueprintBtn) blueprintBtn.disabled = locked;
+
+            if (locked) {
+                if (submitIcon) submitIcon.className = "fa-solid fa-spinner text-xs animate-spin";
+                if (submitBtn) submitBtn.className = "absolute right-2.5 bottom-2.5 w-8 h-8 bg-slate-800 text-slate-500 rounded-lg transition shadow flex items-center justify-center cursor-not-allowed";
+            } else {
+                if (submitIcon) submitIcon.className = "fa-solid fa-bolt text-xs";
+                if (submitBtn) submitBtn.className = "absolute right-2.5 bottom-2.5 w-8 h-8 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg transition shadow flex items-center justify-center";
+            }
         }
 
         function connectWebSocket() {
@@ -269,8 +309,32 @@
             socket.onmessage = function(event) {
                 try {
                     const data = JSON.parse(event.data);
-                    if (data.tier) document.getElementById("tier-badge").innerText = "Tier: " + data.tier;
-                    if (data.tokens_left !== undefined) document.getElementById("credits-badge").innerText = "Tokens: " + data.tokens_left;
+                    
+                    if (data.country) {
+                        geoPricingMatrix.country = data.country;
+                        if (data.country !== "IN") {
+                            geoPricingMatrix.matrix = { symbol: "$", lite: "9", infinite: "29", enterprise: "99", token_refill: "2" };
+                        } else {
+                            geoPricingMatrix.matrix = { symbol: "₹", lite: "499", infinite: "999", enterprise: "3999", token_refill: "50" };
+                        }
+                        initializePricingMatrix();
+                    }
+
+                    if (data.tier) {
+                        const tierBadge = document.getElementById("tier-badge");
+                        if (tierBadge) tierBadge.innerText = "Tier: " + data.tier;
+                    }
+                    
+                    if (data.tokens_left !== undefined) {
+                        const creditsBadge = document.getElementById("credits-badge");
+                        if (creditsBadge) creditsBadge.innerText = "Tokens: " + data.tokens_left;
+                        if (Number(data.tokens_left) === 0 || data.tokens_left === "0") {
+                            setPipelineLockState(false);
+                            triggerActivationModal();
+                            appendSystemLog("Security Engine", "Alert: Token budget exhausted. Identity node lock deployed.");
+                            return;
+                        }
+                    }
 
                     if (data.agent) {
                         const badge = document.getElementById("active-agent-badge");
@@ -283,6 +347,7 @@
                         if (data.log) {
                             appendSystemLog(data.agent, data.log);
                             if (data.log.includes("Activation Gate protocol initiated")) {
+                                setPipelineLockState(false);
                                 triggerActivationModal();
                             }
                         }
@@ -292,12 +357,24 @@
                         displayDynamicBlueprintModal(data.blueprint_schema);
                     }
 
+                    // FIXED: Streaming dynamic layout layout update with safe continuous mapping
+                    if (data.chunk_output) {
+                        lastReceivedOutput += data.chunk_output;
+                        const edPanel = document.getElementById("sandbox-editor-panel");
+                        if (edPanel) edPanel.value = lastReceivedOutput;
+                        updateSandboxMirror(lastReceivedOutput);
+                    }
+
                     if (data.result_data && data.result_data.status === "SUCCESS") {
+                        setPipelineLockState(false);
                         const activeBadge = document.getElementById("active-agent-badge");
                         if (activeBadge) activeBadge.classList.add("hidden");
                         
-                        lastReceivedOutput = data.result_data.full_output;
-                        document.getElementById("blueprint-approval-placeholder").classList.add("hidden");
+                        if (data.result_data.full_output) {
+                            lastReceivedOutput = data.result_data.full_output;
+                        }
+                        const blueprintPlaceholder = document.getElementById("blueprint-approval-placeholder");
+                        if (blueprintPlaceholder) blueprintPlaceholder.classList.add("hidden");
                         
                         const edPanel = document.getElementById("sandbox-editor-panel");
                         if (edPanel) edPanel.value = lastReceivedOutput;
@@ -313,6 +390,7 @@
             };
 
             socket.onclose = function() {
+                setPipelineLockState(false);
                 statusDot.className = "w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse";
                 const activeBadge = document.getElementById("active-agent-badge");
                 if (activeBadge) activeBadge.classList.add("hidden");
@@ -324,7 +402,8 @@
         }
 
         function triggerActivationModal() {
-            document.getElementById("activation-gate-modal").classList.remove("hidden");
+            const el = document.getElementById("activation-gate-modal");
+            if (el) el.classList.remove("hidden");
         }
 
         function activateSmartButtons() {
@@ -342,7 +421,7 @@
             }
             if(btnDeploy) {
                 btnDeploy.disabled = false;
-                btnDeploy.className = "px-4 py-1.5 bg-emerald-500 text-slate-950 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow pointer hover:bg-emerald-400 animate-pulse";
+                btnDeploy.className = "px-4 py-1.5 bg-emerald-500 text-slate-950 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow pointer hover:bg-emerald-400";
             }
         }
 
@@ -369,15 +448,25 @@
         }
 
         function initiateSwarmPipeline() {
+            if (isSwarmRunning) return;
             const inp = document.getElementById("task-input");
             if (!inp || !inp.value.trim()) return;
             
             currentPromptTask = inp.value.trim();
-            document.getElementById("blueprint-approval-placeholder").classList.add("hidden");
+            lastReceivedOutput = "";
+            const blueprintPlaceholder = document.getElementById("blueprint-approval-placeholder");
+            if (blueprintPlaceholder) blueprintPlaceholder.classList.add("hidden");
 
             if (socket && socket.readyState === WebSocket.OPEN) {
+                setPipelineLockState(true);
                 appendSystemLog("Swarm Architect", "Analyzing instructions to compute blueprint roadmap...");
                 socket.send(JSON.stringify({ task: currentPromptTask, blueprint_approved: false }));
+                
+                const previewPane = document.getElementById("pane-preview");
+                if (previewPane && window.innerWidth >= 1024) {
+                    previewPane.classList.remove("hidden");
+                    previewPane.classList.add("flex");
+                }
                 if (window.innerWidth < 1024) switchMobileTab('preview');
             } else {
                 alert("Connection cluster offline.");
@@ -388,7 +477,8 @@
             const container = document.getElementById("blueprint-details-box");
             if (!container) return;
             container.innerHTML = "";
-            document.getElementById("blueprint-approval-placeholder").classList.remove("hidden");
+            const blueprintPlaceholder = document.getElementById("blueprint-approval-placeholder");
+            if (blueprintPlaceholder) blueprintPlaceholder.classList.remove("hidden");
             
             if (schema.steps && schema.steps.length > 0) {
                 schema.steps.forEach((step, idx) => {
@@ -402,9 +492,12 @@
             }
         }
 
+        // FIXED: Safe dynamic execution integration approval trigger logic
         function approveBlueprintAndBuild() {
             if (socket && socket.readyState === WebSocket.OPEN) {
-                document.getElementById("blueprint-approval-placeholder").classList.add("hidden");
+                setPipelineLockState(true);
+                const blueprintPlaceholder = document.getElementById("blueprint-approval-placeholder");
+                if (blueprintPlaceholder) blueprintPlaceholder.classList.add("hidden");
                 socket.send(JSON.stringify({ task: currentPromptTask, blueprint_approved: true }));
             }
         }
@@ -413,9 +506,11 @@
             const frame = document.getElementById("sandbox-mirror");
             if (!frame) return;
             const doc = frame.contentDocument || frame.contentWindow.document;
-            doc.open();
-            doc.write(rawCode);
-            doc.close();
+            if (doc) {
+                doc.open();
+                doc.write(rawCode);
+                doc.close();
+            }
         }
 
         function toggleSandboxView(mode) {
@@ -501,23 +596,30 @@
             const previewPane = document.getElementById("pane-preview");
             if (window.innerWidth >= 1024) {
                 if(consolePane) { consolePane.style.display = ""; consolePane.classList.remove("hidden"); }
-                if(previewPane) { previewPane.style.display = ""; previewPane.classList.remove("hidden"); }
+                if(previewPane) { previewPane.style.display = ""; previewPane.classList.remove("hidden"); previewPane.classList.add("flex"); }
             }
         });
 
         function initializePricingMatrix() {
             const m = geoPricingMatrix.matrix;
-            document.getElementById("price-lbl-lite").innerText = m.symbol + m.lite;
-            document.getElementById("price-lbl-infinite").innerText = m.symbol + m.infinite;
-            document.getElementById("price-lbl-enterprise").innerText = m.symbol + m.enterprise;
-            document.getElementById("price-lbl-token").innerText = m.symbol + m.token_refill;
+            const lblLite = document.getElementById("price-lbl-lite");
+            const lblInf = document.getElementById("price-lbl-infinite");
+            const lblEnt = document.getElementById("price-lbl-enterprise");
+            const lblTok = document.getElementById("price-lbl-token");
+
+            if(lblLite) lblLite.innerText = m.symbol + m.lite;
+            if(lblInf) lblInf.innerText = m.symbol + m.infinite;
+            if(lblEnt) lblEnt.innerText = m.symbol + m.enterprise;
+            if(lblTok) lblTok.innerText = m.symbol + m.token_refill;
         }
 
         function processGateEmail() {
             const mail = document.getElementById("gate-email-field").value.trim();
             if (!mail) return;
-            document.getElementById("gate-stage-email").classList.add("hidden");
-            document.getElementById("gate-stage-plans").classList.remove("hidden");
+            const stageEmail = document.getElementById("gate-stage-email");
+            const stagePlans = document.getElementById("gate-stage-plans");
+            if(stageEmail) stageEmail.classList.add("hidden");
+            if(stagePlans) stagePlans.classList.remove("hidden");
             initializePricingMatrix();
         }
 
@@ -559,6 +661,10 @@
         }
 
         function redirectToRazorpay() {
+            if (geoPricingMatrix.country !== "IN") {
+                alert("Razorpay is only for local transactions. Please use Stripe.");
+                return;
+            }
             const targetLink = razorpayLinks[activeSelectedTier];
             if (targetLink) {
                 window.open(targetLink, '_blank');
