@@ -100,9 +100,9 @@
                     </button>
                 </div>
 
-                <div class="relative flex items-center bg-slate-900/60 border border-slate-800 focus-within:border-emerald-500/40 rounded-xl overflow-hidden p-1 shadow-lg w-full mx-auto">
-                    <textarea id="task-input" rows="2" oninput="autoExpandPromptField(this)" class="w-full bg-transparent p-2.5 pr-12 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none transition resize-none max-h-32" placeholder="Apna business idea ya topic likhein, jaise: 'E-commerce store ke liye Next.js website build karna'..."></textarea>
-                    <button id="pipeline-submit-btn" onclick="initiateSwarmPipeline()" class="absolute right-2.5 bottom-2.5 w-8 h-8 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg transition shadow flex items-center justify-center" title="Generate Blueprint Plan">
+                <div class="flex items-end bg-slate-900/60 border border-slate-800 focus-within:border-emerald-500/40 rounded-xl overflow-hidden p-2 gap-2 shadow-lg w-full mx-auto">
+                    <textarea id="task-input" rows="2" oninput="autoExpandPromptField(this)" class="flex-1 bg-transparent p-1.5 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none transition resize-none max-h-32" placeholder="Apna business idea ya topic likhein, jaise: 'E-commerce store ke liye Next.js website build karna'..."></textarea>
+                    <button id="pipeline-submit-btn" onclick="initiateSwarmPipeline()" class="w-8 h-8 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg transition shadow flex items-center justify-center shrink-0 mb-0.5" title="Generate Blueprint Plan">
                         <i id="pipeline-submit-icon" class="fa-solid fa-bolt text-xs"></i>
                     </button>
                 </div>
@@ -111,20 +111,20 @@
 
         <section id="pane-preview" class="hidden lg:flex bg-slate-950 flex-col h-full overflow-hidden w-full m-0 border-none">
             
-            <div class="flex items-center justify-between border-b border-slate-900 px-4 py-3 shrink-0 bg-slate-950/90 backdrop-blur w-full">
-                <div class="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800/80">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-900 px-4 py-3 shrink-0 bg-slate-950/90 backdrop-blur w-full gap-3 sm:gap-2">
+                <div class="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-slate-880/80 shrink-0">
                     <button id="view-mode-editor" onclick="toggleSandboxView('editor')" class="px-3 py-1.5 text-[10px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200 transition">Code Editor</button>
                     <button id="view-mode-mirror" onclick="toggleSandboxView('mirror')" class="px-3 py-1.5 text-[10px] font-mono font-bold uppercase rounded-md bg-slate-950 text-emerald-400 shadow transition">Live Preview</button>
                 </div>
                 
-                <div id="smart-action-controls" class="flex items-center space-x-2">
-                    <button id="copy-code-trigger" onclick="copyGeneratedCode()" disabled class="px-3 py-1.5 bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed font-mono font-bold text-[10px] uppercase rounded-xl transition flex items-center space-x-1.5">
+                <div id="smart-action-controls" class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
+                    <button id="copy-code-trigger" onclick="handleProtectedGate('copy')" class="px-3 py-1.5 bg-slate-900 text-emerald-400 border border-emerald-500/30 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow cursor-pointer hover:bg-slate-800 flex items-center space-x-1.5">
                         <i class="fa-solid fa-copy"></i><span id="copy-btn-text">Copy Code</span>
                     </button>
-                    <button id="download-code-trigger" onclick="executeKrakenProductionDeploy()" disabled class="px-3 py-1.5 bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed font-mono font-bold text-[10px] uppercase rounded-xl transition flex items-center space-x-1.5">
+                    <button id="download-code-trigger" onclick="handleProtectedGate('download')" class="px-3 py-1.5 bg-slate-900 text-emerald-400 border border-emerald-500/30 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow cursor-pointer hover:bg-slate-800 flex items-center space-x-1.5">
                         <i class="fa-solid fa-download"></i><span>Download</span>
                     </button>
-                    <button id="production-deploy-trigger" onclick="alert('Deploying to Cloud Clusters...')" disabled class="px-4 py-1.5 bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed font-mono font-bold text-[10px] uppercase rounded-xl transition flex items-center space-x-1.5">
+                    <button id="production-deploy-trigger" onclick="handleProtectedGate('deploy')" class="px-4 py-1.5 bg-emerald-500 text-slate-950 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow cursor-pointer hover:bg-emerald-400 flex items-center space-x-1.5">
                         <i class="fa-solid fa-cloud-arrow-up"></i><span>Deploy App</span>
                     </button>
                 </div>
@@ -154,22 +154,25 @@
     </main>
 
     <div id="activation-gate-modal" class="hidden fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-        <div class="w-full max-w-md bg-slate-950 border border-slate-900 rounded-2xl p-5 shadow-2xl font-mono text-[11px] space-y-4 my-auto">
+        <div class="w-full max-w-md bg-slate-950 border border-slate-900 rounded-2xl p-5 shadow-2xl font-mono text-[11px] space-y-4 my-auto relative">
+            <button onclick="closeActivationModal()" class="absolute right-4 top-4 text-slate-500 hover:text-rose-400 transition"><i class="fa-solid fa-xmark text-sm"></i></button>
+            
             <div id="gate-stage-email" class="space-y-3">
                 <div class="text-center space-y-1">
-                    <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Verify Identity Node Pipeline</h3>
-                    <p class="text-slate-500 text-[10px]">Free session pool threshold triggered.</p>
+                    <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider"><i class="fa-solid fa-key mr-1.5"></i>Verify Identity Node Pipeline</h3>
+                    <p class="text-slate-500 text-[10px]">Action requires authentication before cluster processing.</p>
                 </div>
                 <div class="space-y-2">
                     <input type="email" id="gate-email-field" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-center text-slate-200 focus:border-emerald-500/50 focus:outline-none text-xs" placeholder="developer@workspace.com">
                     <div id="gate-error-box" class="hidden text-rose-400 text-[9px] text-center font-bold"></div>
-                    <button onclick="processGateEmail()" class="w-full py-2 bg-emerald-500 text-slate-950 font-bold uppercase rounded-xl tracking-wider text-[10px]">Authenticate Node</button>
+                    <button onclick="processGateEmail()" class="w-full py-2 bg-emerald-500 text-slate-950 font-bold uppercase rounded-xl tracking-wider text-[10px] hover:bg-emerald-400 transition">Authenticate Node</button>
                 </div>
             </div>
 
             <div id="gate-stage-plans" class="hidden space-y-3">
                 <div class="text-center">
-                    <h3 class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Select Node Allocation Refill</h3>
+                    <h3 class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider"><i class="fa-solid fa-credit-card mr-1.5"></i>Select Node Allocation Refill</h3>
+                    <p class="text-slate-500 text-[9px] mt-0.5">Free session threshold met. Upgrade plan to unlock actions.</p>
                 </div>
                 <div class="flex bg-slate-900 p-0.5 rounded-lg border border-slate-800">
                     <button id="btn-tab-monthly" onclick="togglePlanTab('monthly')" class="flex-1 py-1 text-center font-bold text-[10px] bg-slate-950 text-emerald-400 rounded-md shadow">Subscriptions</button>
@@ -178,21 +181,21 @@
                 <div id="box-monthly-plans" class="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <div onclick="selectProductTier('lite')" class="border border-slate-900 bg-slate-900/20 p-2.5 rounded-xl cursor-pointer hover:border-slate-800 transition text-[10px]">
                         <p class="font-bold text-slate-300">Lite (3k words / 20 logs)</p>
-                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-lite">499</div>
+                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-lite">₹499</div>
                     </div>
                     <div onclick="selectProductTier('infinite')" class="border border-emerald-500/30 bg-emerald-500/5 p-2.5 rounded-xl cursor-pointer transition text-[10px]">
                         <p class="font-bold text-slate-200">Infinite Swarm</p>
-                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-infinite">999</div>
+                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-infinite">₹999</div>
                     </div>
                     <div onclick="selectProductTier('enterprise')" class="border border-slate-900 bg-slate-900/20 p-2.5 rounded-xl cursor-pointer hover:border-slate-800 transition text-[10px]">
                         <p class="font-bold text-slate-300">Enterprise Cluster</p>
-                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-enterprise">3999</div>
+                        <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-enterprise">₹3999</div>
                     </div>
                 </div>
                 <div id="box-token-plans" class="hidden">
                     <div onclick="selectProductTier('token_refill')" class="border border-amber-500/30 bg-amber-500/5 p-3 rounded-xl cursor-pointer transition flex justify-between items-center text-[10px]">
                         <p class="font-bold text-amber-400">Casual Credit Stack</p>
-                        <div class="text-sm font-bold text-amber-400" id="price-lbl-token">50</div>
+                        <div class="text-sm font-bold text-amber-400" id="price-lbl-token">₹50</div>
                     </div>
                 </div>
                 <div id="payment-gateway-wrapper" class="hidden bg-slate-900/60 border border-slate-900 p-3 rounded-xl text-center space-y-2">
@@ -218,6 +221,13 @@
     </div>
 
     <script>
+        // CONFIGURATION LAYER - CHANGE THIS IF FRONTEND & BACKEND ARE DEPLOYED SEPARATELY
+        // Agar single project/Render node hai toh window.location.host automatically chalega.
+        const BACKEND_HOST = window.location.host; 
+
+        let isEmailVerified = false; 
+        let hasPaidPlan = false;      
+
         let sessionNodeId = localStorage.getItem("kraken_session_node") || ("node_" + Math.random().toString(36).substring(2, 13));
         localStorage.setItem("kraken_session_node", sessionNodeId);
 
@@ -232,7 +242,7 @@
 
         let socket;
         const wsProto = window.location.protocol === "https:" ? "wss://" : "ws://";
-        const wsUrl = wsProto + window.location.host + "/ws/v1/swarm-orchestrator/" + sessionNodeId + "?session_id=" + sessionNodeId;
+        const wsUrl = wsProto + BACKEND_HOST + "/ws/v1/swarm-orchestrator/" + sessionNodeId + "?session_id=" + sessionNodeId;
         
         let geoPricingMatrix = { country: "IN", matrix: { symbol: "₹", lite: "499", infinite: "999", enterprise: "3999", token_refill: "50" } };
         let lastReceivedOutput = "";
@@ -287,10 +297,10 @@
 
             if (locked) {
                 if (submitIcon) submitIcon.className = "fa-solid fa-spinner text-xs animate-spin";
-                if (submitBtn) submitBtn.className = "absolute right-2.5 bottom-2.5 w-8 h-8 bg-slate-800 text-slate-500 rounded-lg transition shadow flex items-center justify-center cursor-not-allowed";
+                if (submitBtn) submitBtn.className = "w-8 h-8 bg-slate-800 text-slate-500 rounded-lg transition shadow flex items-center justify-center cursor-not-allowed shrink-0 mb-0.5";
             } else {
                 if (submitIcon) submitIcon.className = "fa-solid fa-bolt text-xs";
-                if (submitBtn) submitBtn.className = "absolute right-2.5 bottom-2.5 w-8 h-8 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg transition shadow flex items-center justify-center";
+                if (submitBtn) submitBtn.className = "w-8 h-8 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg transition shadow flex items-center justify-center shrink-0 mb-0.5";
             }
         }
 
@@ -328,12 +338,6 @@
                     if (data.tokens_left !== undefined) {
                         const creditsBadge = document.getElementById("credits-badge");
                         if (creditsBadge) creditsBadge.innerText = "Tokens: " + data.tokens_left;
-                        if (Number(data.tokens_left) === 0 || data.tokens_left === "0") {
-                            setPipelineLockState(false);
-                            triggerActivationModal();
-                            appendSystemLog("Security Engine", "Alert: Token budget exhausted. Identity node lock deployed.");
-                            return;
-                        }
                     }
 
                     if (data.agent) {
@@ -346,10 +350,6 @@
                         
                         if (data.log) {
                             appendSystemLog(data.agent, data.log);
-                            if (data.log.includes("Activation Gate protocol initiated")) {
-                                setPipelineLockState(false);
-                                triggerActivationModal();
-                            }
                         }
                     }
 
@@ -357,7 +357,6 @@
                         displayDynamicBlueprintModal(data.blueprint_schema);
                     }
 
-                    // FIXED: Streaming dynamic layout layout update with safe continuous mapping
                     if (data.chunk_output) {
                         lastReceivedOutput += data.chunk_output;
                         const edPanel = document.getElementById("sandbox-editor-panel");
@@ -380,8 +379,6 @@
                         if (edPanel) edPanel.value = lastReceivedOutput;
                         
                         updateSandboxMirror(lastReceivedOutput);
-                        activateSmartButtons();
-
                         if (window.innerWidth < 1024) switchMobileTab('preview');
                     }
                 } catch (err) {
@@ -401,41 +398,65 @@
             };
         }
 
-        function triggerActivationModal() {
-            const el = document.getElementById("activation-gate-modal");
-            if (el) el.classList.remove("hidden");
+        function handleProtectedGate(actionType) {
+            if (!lastReceivedOutput) {
+                alert("Pehle input dekar blueprint generate kijiye.");
+                return;
+            }
+
+            if (hasPaidPlan) {
+                executeGateVerifiedAction(actionType);
+                return;
+            }
+
+            if (!isEmailVerified) {
+                document.getElementById("activation-gate-modal").classList.remove("hidden");
+                document.getElementById("gate-stage-email").classList.remove("hidden");
+                document.getElementById("gate-stage-plans").classList.add("hidden");
+                return;
+            }
+
+            if (isEmailVerified && !hasPaidPlan) {
+                document.getElementById("activation-gate-modal").classList.remove("hidden");
+                document.getElementById("gate-stage-email").classList.add("hidden");
+                document.getElementById("gate-stage-plans").classList.remove("hidden");
+                initializePricingMatrix();
+                return;
+            }
         }
 
-        function activateSmartButtons() {
-            const btnCopy = document.getElementById("copy-code-trigger");
-            const btnDownload = document.getElementById("download-code-trigger");
-            const btnDeploy = document.getElementById("production-deploy-trigger");
-
-            if(btnCopy) {
-                btnCopy.disabled = false;
-                btnCopy.className = "px-3 py-1.5 bg-slate-900 text-emerald-400 border border-emerald-500/30 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow cursor-pointer hover:bg-slate-800";
-            }
-            if(btnDownload) {
-                btnDownload.disabled = false;
-                btnDownload.className = "px-3 py-1.5 bg-slate-900 text-emerald-400 border border-emerald-500/30 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow cursor-pointer hover:bg-slate-800";
-            }
-            if(btnDeploy) {
-                btnDeploy.disabled = false;
-                btnDeploy.className = "px-4 py-1.5 bg-emerald-500 text-slate-950 font-mono font-bold text-[10px] uppercase rounded-xl transition shadow pointer hover:bg-emerald-400";
+        function executeGateVerifiedAction(actionType) {
+            if (actionType === 'copy') {
+                navigator.clipboard.writeText(lastReceivedOutput).then(() => {
+                    const btnText = document.getElementById("copy-btn-text");
+                    if(btnText) {
+                        btnText.innerText = "Copied!";
+                        setTimeout(() => { btnText.innerText = "Copy Code"; }, 2000);
+                    }
+                });
+            } else if (actionType === 'download') {
+                executeKrakenProductionDeploy();
+            } else if (actionType === 'deploy') {
+                alert("Initiating secure app deployment setup over Cloud Clusters...");
             }
         }
 
-        function copyGeneratedCode() {
-            if (!lastReceivedOutput) return;
-            navigator.clipboard.writeText(lastReceivedOutput).then(() => {
-                const btnText = document.getElementById("copy-btn-text");
-                if(btnText) {
-                    btnText.innerText = "Copied!";
-                    setTimeout(() => { btnText.innerText = "Copy Code"; }, 2000);
-                }
-            }).catch(err => {
-                alert("Failed to copy code: " + err);
-            });
+        function closeActivationModal() {
+            document.getElementById("activation-gate-modal").classList.add("hidden");
+        }
+
+        function executeKrakenProductionDeploy() {
+            try {
+                const link = document.createElement('a');
+                const fileBlob = new Blob([lastReceivedOutput], { type: 'text/html' });
+                link.href = URL.createObjectURL(fileBlob);
+                link.download = `kraken_build_${Math.floor(Date.now() / 1000)}.html`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (err) {
+                alert("Export module failure: " + err.message);
+            }
         }
 
         function appendSystemLog(agent, text) {
@@ -492,7 +513,6 @@
             }
         }
 
-        // FIXED: Safe dynamic execution integration approval trigger logic
         function approveBlueprintAndBuild() {
             if (socket && socket.readyState === WebSocket.OPEN) {
                 setPipelineLockState(true);
@@ -539,21 +559,6 @@
             if (!panel) return;
             lastReceivedOutput = panel.value;
             updateSandboxMirror(lastReceivedOutput);
-        }
-
-        function executeKrakenProductionDeploy() {
-            if (!lastReceivedOutput) return;
-            try {
-                const link = document.createElement('a');
-                const fileBlob = new Blob([lastReceivedOutput], { type: 'text/html' });
-                link.href = URL.createObjectURL(fileBlob);
-                link.download = `kraken_build_${Math.floor(Date.now() / 1000)}.html`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            } catch (err) {
-                alert("Export module failure: " + err.message);
-            }
         }
 
         function switchMobileTab(target) {
@@ -616,6 +621,8 @@
         function processGateEmail() {
             const mail = document.getElementById("gate-email-field").value.trim();
             if (!mail) return;
+            
+            isEmailVerified = true; 
             const stageEmail = document.getElementById("gate-stage-email");
             const stagePlans = document.getElementById("gate-stage-plans");
             if(stageEmail) stageEmail.classList.add("hidden");
@@ -702,6 +709,17 @@
 
         document.addEventListener("DOMContentLoaded", function() {
             connectWebSocket();
+
+            // Add auto trigger on 'Enter' key inside prompt box
+            const taskInput = document.getElementById("task-input");
+            if(taskInput) {
+                taskInput.addEventListener("keydown", function(e) {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        initiateSwarmPipeline();
+                    }
+                });
+            }
         });
     </script>
 </body>
