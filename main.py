@@ -184,14 +184,9 @@ async def initialize_db_tables():
 async def lifespan(app: FastAPI):
     global db_pool, secondary_db_pool, redis_client, http_client
     
-    def clean_db_url(url: str) -> str:
-        if url and "?sslmode=" not in url and "localhost" not in url and "127.0.0.1" not in url:
-            base = url.split("?")[0]
-            return f"{base}?sslmode=require"
-        return url
-
-    target_db_url = clean_db_url(RAW_DB_URL)
-    target_sec_url = clean_db_url(SECONDARY_DB_URL)
+    # FIX: Clean_db_url function ko bypass kiya gaya hai taaki Neon DB URL sahi se work kare aur '' empty string error na aaye.
+    target_db_url = RAW_DB_URL
+    target_sec_url = SECONDARY_DB_URL
 
     limits = httpx.Limits(max_keepalive_connections=100, max_connections=400)
     http_client = httpx.AsyncClient(limits=limits, timeout=15.0)
