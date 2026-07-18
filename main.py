@@ -39,10 +39,11 @@ except ImportError:
 logger = logging.getLogger("kraken_swarm_production")
 logging.basicConfig(level=logging.INFO)
 
-# 🔐 ENVIRONMENT SETUP - SECURE FALLBACKS (UPDATED WITH CORRECT ENDPOINT)
+# 🔐 ENVIRONMENT SETUP - SECURE ENVIRONMENT VARIATION
 DATABASE_URL_ENV = os.getenv("DATABASE_URL")
 if not DATABASE_URL_ENV:
-    DATABASE_URL_ENV = "postgresql://neondb_owner:npg_fAGLjuH5xJd8@ep-fancy-meadow-ajdpi2bm.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require"
+    # Local fallback optimized for environments setup without local production secrets
+    DATABASE_URL_ENV = "postgresql://localhost/neondb"
 
 RAW_DB_URL = DATABASE_URL_ENV
 SECONDARY_DB_URL = os.getenv("SECONDARY_DATABASE_URL", RAW_DB_URL)
@@ -53,9 +54,6 @@ db_pool = None
 secondary_db_pool = None
 redis_client = None
 http_client = None
-
-# --- IN-MEMORY CACHE FOR LIVE PREVIEWS ---
-PREVIEW_CACHE: Dict[str, str] = {}
 
 # 📊 CHARACTER LIMITS & QUOTA MANAGEMENT
 PLAN_SAFETY_LIMITS = {
@@ -78,7 +76,7 @@ PLAN_SAFETY_LIMITS = {
     }
 }
 
-DISPOSABLE_DOMAINS = {"mailinator.com", "temp-mail.org", "yopmail.com", "sharklasers.com", "guerrillamail.com", "dispostable.com", "getairmail.com"}
+DISPOSABLE_DOMAINS = set() 
 
 class ActivationPayload(BaseModel):
     session_id: str
@@ -108,7 +106,6 @@ async def log_to_discord(agent_name: str, message: str, status: str = "INFO"):
     except Exception as e:
         logger.error(f"Failed to push update to Discord: {e}")
 
-# CPU-BOUND PROCESSING WRAPPER FOR QR/PILLOW
 def execute_cpu_heavy_image_task(data_content: str) -> io.BytesIO:
     if not HAS_IMAGE_PROCESSING:
         raise RuntimeError("Image/QR processing libraries missing on runtime ecosystem.")
@@ -116,7 +113,6 @@ def execute_cpu_heavy_image_task(data_content: str) -> io.BytesIO:
     qr.add_data(data_content)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white").convert('RGB')
-    
     img = img.resize((300, 300), Image.Resampling.LANCZOS)
     
     buf = io.BytesIO()
@@ -124,7 +120,6 @@ def execute_cpu_heavy_image_task(data_content: str) -> io.BytesIO:
     buf.seek(0)
     return buf
 
-# 🔄 MIDNIGHT CRYPTO RESET CRON TASK BACKGROUND LOOP
 async def daily_query_reset_scheduler():
     while True:
         try:
@@ -137,9 +132,12 @@ async def daily_query_reset_scheduler():
             await asyncio.sleep(max(seconds_until_midnight, 1.0))
             
             if db_pool:
-                async with db_pool.acquire() as conn:
-                    await conn.execute("UPDATE user_vault SET queries_used_today = 0;")
-                logger.info("System-wide Reset triggered successfully: queries_used_today updated to 0 for all tiers.")
+                try:
+                    async with db_pool.acquire() as conn:
+                        await conn.execute("UPDATE user_vault SET queries_used_today = 0;")
+                    logger.info("System-wide Reset triggered successfully: queries_used_today updated to 0 for all tiers.")
+                except Exception as db_err:
+                    logger.error(f"Database query execution failed inside scheduler: {db_err}")
                 
         except asyncio.CancelledError:
             break
@@ -182,7 +180,6 @@ async def initialize_db_tables():
             logger.warning(f"Table initialization attempt {attempt+1} failed: {e}. Retrying...")
             await asyncio.sleep(2)
 
-# FIXED: LIFESPAN WITH CRASH PROTECTION ON DATABASE HANDSHAKE
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global db_pool, secondary_db_pool, redis_client, http_client
@@ -209,14 +206,13 @@ async def lifespan(app: FastAPI):
     if target_db_url:
         try:
             logger.info("Connecting to Remote primary database cluster...")
-            # SAFE CONNECTION BOUNDS: Handshake timeouts reduced to 5s to prevent boot freeze crashes
             db_pool = await asyncpg.create_pool(target_db_url, min_size=1, max_size=5, timeout=5.0, command_timeout=5.0)
             logger.info("Primary Database connection pool initialized.")
             asyncio.create_task(initialize_db_tables())
             asyncio.create_task(daily_query_reset_scheduler())
         except Exception as dbe:
             logger.error(f"CRITICAL PRIMARY DB TIMEOUT BUT SERVING INTERFACE: {dbe}.")
-            db_pool = None  # Prevents server loop from crashing out completely
+            db_pool = None
             
     if target_sec_url and target_sec_url != target_db_url:
         try:
@@ -240,7 +236,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Kraken Swarm Engine", lifespan=lifespan)
 
-# --- ENGINE IMAGE COMPILATION ENDPOINT ---
 @app.get("/api/v1/generate-qr-node")
 async def get_sandbox_qr_node(content: str = "Kraken Swarm"):
     if not HAS_IMAGE_PROCESSING:
@@ -253,7 +248,6 @@ async def get_sandbox_qr_node(content: str = "Kraken Swarm"):
         logger.error(f"Image compilation crash: {runtime_img_err}")
         raise HTTPException(status_code=500, detail="Visual system stream rendering error.")
 
-# --- REAL-TIME CLOUD-SYNCED KRAKENDB ---
 @app.post("/api/v1/krakendb/sync")
 async def sync_krakendb(payload: KrakenDBSyncPayload):
     if not db_pool:
@@ -268,7 +262,7 @@ async def sync_krakendb(payload: KrakenDBSyncPayload):
         async with db_pool.acquire() as conn:
             await conn.execute(
                 "INSERT INTO krakendb_sync (session_id, store_name, data) VALUES ($1, $2, $3)",
-                payload.session_id, payload.store_name, json.dumps(payload.payload_data)
+                payload.session_id, payload.store_name, payload.payload_data
             )
         return {"status": "SUCCESS", "message": "Sandbox state captured dynamically."}
     except Exception as e:
@@ -301,12 +295,16 @@ async def get_krakendb_sync(session_id: str):
         logger.error(f"KrakenDB read error: {e}")
         raise HTTPException(status_code=500, detail="State query failure.")
 
-# --- LIVE SANDBOX PREVIEW ENDPOINT ---
 @app.get("/api/v1/preview/{session_id}", response_class=HTMLResponse)
 async def live_sandbox_preview(session_id: str):
-    if session_id in PREVIEW_CACHE:
-        return HTMLResponse(content=PREVIEW_CACHE[session_id], status_code=200)
-    
+    if redis_client:
+        try:
+            cached_html = await redis_client.get(f"preview:{session_id}")
+            if cached_html:
+                return HTMLResponse(content=cached_html, status_code=200)
+        except Exception as re_err:
+            logger.error(f"Redis fetch error inside preview route: {re_err}")
+
     if db_pool:
         try:
             async with db_pool.acquire() as conn:
@@ -331,7 +329,6 @@ async def live_sandbox_preview(session_id: str):
             
     return HTMLResponse(content="<h3>Sandbox preview session not active or has been cleared.</h3>", status_code=404)
 
-# --- EXPORT ZIP API ENDPOINT ---
 @app.get("/api/v1/export/{session_id}")
 async def export_project_zip(session_id: str):
     if not db_pool:
@@ -345,9 +342,13 @@ async def export_project_zip(session_id: str):
             raise HTTPException(status_code=402, detail=" Exporting source code ZIP structures is exclusive to premium users.")
             
         content = ""
-        if session_id in PREVIEW_CACHE:
-            content = PREVIEW_CACHE[session_id]
-        elif user["history"]:
+        if redis_client:
+            try:
+                content = await redis_client.get(f"preview:{session_id}")
+            except Exception:
+                pass
+        
+        if not content and user["history"]:
             history_data = json.loads(user["history"]) if isinstance(user["history"], str) else user["history"]
             if history_data and len(history_data) > 0:
                 content = history_data[-1].get("code", "")
@@ -373,28 +374,128 @@ async def serve_dashboard():
         <meta charset="UTF-8">
         <title>Kraken Swarm Production Engine Dashboard</title>
         <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            .controls-container {
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+                width: 100%;
+                gap: 8px;
+                padding: 10px;
+                box-sizing: border-box;
+                overflow: hidden;
+            }
+            .controls-container button {
+                padding: 6px 14px;
+                font-size: 13px;
+                white-space: nowrap;
+                border-radius: 6px;
+                font-weight: 600;
+                transition: all 0.2s ease;
+            }
+        </style>
     </head>
-    <body class="bg-slate-900 text-white flex flex-col items-center justify-center min-h-screen p-6">
-        <div class="max-w-md w-full bg-slate-800 rounded-xl p-8 shadow-2xl border border-slate-700 text-center">
-            <h1 class="text-3xl font-extrabold text-blue-400 mb-2">Kraken Swarm Engine</h1>
-            <p class="text-slate-400 text-sm mb-6">Claim your sandbox quota instantly via validated OAuth authorization layer.</p>
-            <div id="auth-box">
-                <button onclick="triggerGoogleSandboxClaim()" class="w-full flex items-center justify-center gap-3 bg-white text-slate-900 font-semibold py-3 px-4 rounded-lg hover:bg-slate-100 transition-all">
-                    <span>Sign in with Google</span>
-                </button>
+    <body class="bg-[#0B0B0F] text-white min-h-screen flex flex-col font-sans">
+        
+        <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
+            <div class="controls-container max-w-7xl mx-auto">
+                <button onclick="triggerAction('edit')" class="bg-blue-600 hover:bg-blue-500 text-white">Code Edit</button>
+                <button onclick="triggerAction('preview')" class="bg-indigo-600 hover:bg-indigo-500 text-white">Live Preview</button>
+                <button onclick="triggerAction('deploy')" class="bg-emerald-600 hover:bg-emerald-500 text-white">Deploy App</button>
             </div>
-            <div id="status-message" class="mt-4 text-sm font-medium"></div>
-        </div>
+        </header>
+
+        <main class="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col justify-between">
+            
+            <div id="sandbox-display-window" class="flex-1 w-full rounded-xl border border-dashed border-slate-800 bg-slate-950/20 flex flex-col items-center justify-center min-h-[450px] overflow-hidden relative transition-all duration-300">
+                <div id="blank-placeholder" class="text-center p-8 z-10">
+                    <h2 class="text-xl font-bold text-slate-500 tracking-wide mb-2">Sandbox Environment Initialized</h2>
+                    <p class="text-slate-600 text-sm">Enter a topic below to dynamically compile your 3D high-converting system.</p>
+                </div>
+                <iframe id="live-render-frame" class="absolute inset-0 w-full h-full border-none hidden"></iframe>
+            </div>
+
+            <div class="mt-6 bg-slate-900/60 border border-slate-800 rounded-xl p-4 shadow-xl">
+                <div class="flex flex-col md:flex-row gap-4 items-center">
+                    <input type="text" id="user-topic-input" placeholder="Type any topic (e.g., Crypto Arbitrage, AI Marketing, SaaS Architecture)..." class="w-full flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                    <button onclick="triggerSwarmGeneration()" class="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 px-6 py-3 rounded-lg text-sm font-bold tracking-wide shadow-lg whitespace-nowrap transition-all">Generate Architecture</button>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div id="status-message" class="text-xs font-semibold text-slate-500 tracking-wide">System Standby Mode</div>
+                    <div id="auth-box">
+                        <button onclick="triggerGoogleSandboxClaim()" class="flex items-center gap-2 bg-white text-slate-950 text-xs font-bold py-2 px-4 rounded-md hover:bg-slate-100 transition-colors">
+                            Sign in with Google
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
         <script>
+        let ws;
+        const sessionId = localStorage.getItem("kraken_active_session") || 'sess_' + Math.random().toString(36).substring(2, 15);
+        localStorage.setItem("kraken_active_session", sessionId);
+
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws/v1/swarm-orchestrator/${sessionId}`);
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                const statusMsg = document.getElementById("status-message");
+                
+                if (data.log) {
+                    statusMsg.innerText = `[${data.agent || 'System'}]: ${data.log}`;
+                }
+                
+                if (data.blueprint_structure) {
+                    const currentTopic = document.getElementById("user-topic-input").value.trim();
+                    ws.send(JSON.stringify({ task: currentTopic, blueprint_approved: true }));
+                }
+
+                if (data.preview_url) {
+                    document.getElementById("blank-placeholder").classList.add("hidden");
+                    const frame = document.getElementById("live-render-frame");
+                    frame.classList.remove("hidden");
+                    frame.src = data.preview_url + "?t=" + new Date().getTime();
+                    statusMsg.innerText = "Execution Pipeline Complete: Render Active.";
+                }
+            };
+        }
+
+        async function triggerSwarmGeneration() {
+            const topic = document.getElementById("user-topic-input").value.trim();
+            if(!topic) return;
+            if(!ws || ws.readyState !== WebSocket.OPEN) initWebSocket();
+            
+            document.getElementById("status-message").innerText = "Initiating swarm generation pipeline...";
+            setTimeout(() => {
+                ws.send(JSON.stringify({ task: topic, blueprint_approved: false }));
+            }, 500);
+        }
+
+        function triggerAction(type) {
+            const statusMsg = document.getElementById("status-message");
+            statusMsg.innerText = `Action Triggered: Accessing ${type.toUpperCase()} node...`;
+            
+            if (type === 'edit') {
+                const instructions = prompt("Enter specific UI adjustments or color updates:");
+                if (instructions && ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ edit_instruction: instructions }));
+                }
+            } else if (type === 'preview') {
+                window.open(`/api/v1/preview/${sessionId}`, '_blank');
+            } else if (type === 'deploy') {
+                alert("Gatekeeper Status Check: Standard deployment cluster optimized.");
+            }
+        }
+
         async function triggerGoogleSandboxClaim() {
             const statusMsg = document.getElementById("status-message");
-            statusMsg.className = "mt-4 text-sm font-medium text-blue-400 animate-pulse";
-            statusMsg.innerText = "Processing execution token...";
-            const mockSessionId = 'sess_' + Math.random().toString(36).substring(2, 15);
             const userEmail = prompt("Enter your verified Google Account Email address:");
             if(!userEmail || !userEmail.includes("@")) {
-                statusMsg.className = "mt-4 text-sm font-medium text-red-400";
-                statusMsg.innerText = " Invalid email configuration mapping.";
+                statusMsg.innerText = "Invalid email configuration mapping.";
                 return;
             }
             try {
@@ -402,7 +503,7 @@ async def serve_dashboard():
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        session_id: mockSessionId,
+                        session_id: sessionId,
                         email: userEmail,
                         browser_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                         device_fingerprint: "fp_static_hash_compiled_platform_node"
@@ -410,18 +511,16 @@ async def serve_dashboard():
                 });
                 const data = await response.json();
                 if(response.ok) {
-                    statusMsg.className = "mt-4 text-sm font-medium text-green-400";
-                    statusMsg.innerText = " Verification Confirmed: Single Lifetime Free Run initialized!";
-                    localStorage.setItem("kraken_active_session", mockSessionId);
+                    statusMsg.innerText = "Verification Confirmed: Active Session.";
                 } else {
-                    statusMsg.className = "mt-4 text-sm font-medium text-red-400";
-                    statusMsg.innerText = data.detail || " Quota mapping failed.";
+                    statusMsg.innerText = data.detail || "Quota mapping failed.";
                 }
             } catch(e) {
-                statusMsg.className = "mt-4 text-sm font-medium text-red-400";
-                statusMsg.innerText = " Network handshake error.";
+                statusMsg.innerText = "Network handshake error.";
             }
         }
+
+        window.onload = () => { initWebSocket(); };
         </script>
     </body>
     </html>
@@ -511,7 +610,6 @@ async def get_history(session_id: str):
         logger.error(f"History routing exception: {e}")
         return {"tier": "free", "history": [], "error": "Internal synchronization error"}
 
-# --- ADVANCED DUAL-LLM ROUTING ---
 async def call_gemini_agent(agent_name: str, system_instruction: str, user_prompt: str) -> str:
     if not http_client:
         return f"[{agent_name} Core Simulation Output]: Bypass mode active."
@@ -552,7 +650,6 @@ async def call_gemini_agent(agent_name: str, system_instruction: str, user_promp
 
     return f"[{agent_name} Output]: System workspace simulation processed dynamically."
 
-# --- ERROR SELF-HEALING ENGINE ---
 async def self_heal_output_code(raw_code: str) -> str:
     healed = raw_code.strip()
     html_match = re.search(r"(<html.*?>.*?</html>|<!DOCTYPE.*?>.*?</html>)", healed, re.DOTALL | re.IGNORECASE)
@@ -571,7 +668,12 @@ async def self_heal_output_code(raw_code: str) -> str:
     return healed
 
 async def save_history_bg(sid: str, task: str, html: str):
-    PREVIEW_CACHE[sid] = html
+    if redis_client:
+        try:
+            await redis_client.set(f"preview:{sid}", html, ex=7200)
+        except Exception as re_err:
+            logger.error(f"Redis pipeline error caching html state: {re_err}")
+
     if not db_pool:
         return
     try:
@@ -615,7 +717,6 @@ async def process_async_agents_pipeline(user_task: str, combined_context_dict: d
 
     await asyncio.gather(*(run_single_agent(i + 1, a) for i, a in enumerate(agents_pipeline)))
 
-# --- WEBSOCKET SWARM ORCHESTRATOR ---
 @app.websocket("/ws/v1/swarm-orchestrator/{session_id}")
 async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
     await websocket.accept()
@@ -655,15 +756,15 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                 continue
 
             if tier == "free" and (queries_used >= PLAN_SAFETY_LIMITS["free"]["max_daily_queries"]):
-                await websocket.send_json({"agent": "Kraken Paywall Director", "log": " Access Denied: Lifetime free trial exhaust ho chuka hai."})
+                await websocket.send_json({"agent": "Kraken Paywall Director", "log": " Access Denied: Quota exhausted."})
                 continue
 
             if tier == "free" and (len(user_task) > PLAN_SAFETY_LIMITS["free"]["max_chars"] or len(edit_instruction) > PLAN_SAFETY_LIMITS["free"]["max_chars"]):
-                await websocket.send_json({"agent": "Kraken Swarm Director", "log": " Limit Exceeded: Free character limits maximum rule hit."})
+                await websocket.send_json({"agent": "Kraken Swarm Director", "log": " Limit Exceeded: Max character rule hit."})
                 continue
 
             if edit_instruction and tier == "free":
-                await websocket.send_json({"agent": "Kraken Paywall Director", "log": " Feature Locked: Upgrades required for pipeline edits."})
+                await websocket.send_json({"agent": "Kraken Paywall Director", "log": " Feature Locked: Upgrade required for edits."})
                 continue
 
             try:
@@ -675,7 +776,13 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                 logger.error(f"Error updating database logs: {db_mod_err}")
 
             if edit_instruction:
-                existing_html = PREVIEW_CACHE.get(session_id, "")
+                existing_html = ""
+                if redis_client:
+                    try:
+                        existing_html = await redis_client.get(f"preview:{session_id}")
+                    except Exception:
+                        pass
+                
                 if not existing_html:
                     user_task = edit_instruction
                 else:
@@ -684,7 +791,7 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                     final_html = await self_heal_output_code(final_html_raw)
                     asyncio.create_task(save_history_bg(session_id, f"Edited: {edit_instruction}", final_html))
                     
-                    chunk_size = 60
+                    chunk_size = 4096
                     for i in range(0, len(final_html), chunk_size):
                         await websocket.send_json({"agent": "Kraken Editor", "chunk_output": final_html[i:i+chunk_size]})
                     
@@ -718,16 +825,21 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                     return record;
                 }}
             }}
+            
+            const hueSeeds = [Math.floor(Math.random() * 360), Math.floor(Math.random() * 360), Math.floor(Math.random() * 360)];
+            document.documentElement.style.setProperty('--gradient-c1', `hsl(${{hueSeeds[0]}}, 85%, 55%)`);
+            document.documentElement.style.setProperty('--gradient-c2', `hsl(${{hueSeeds[1]}}, 90%, 50%)`);
+            document.documentElement.style.setProperty('--gradient-c3', `hsl(${{hueSeeds[2]}}, 80%, 45%)`);
             </script>
             """
             
-            assembler_instruction = f"Synthesize single stand-alone software dashboard module layout using Tailwind CSS integrated with: {database_setup_snippet}"
+            assembler_instruction = f"Synthesize single stand-alone software dashboard module layout using Tailwind CSS integrated with high-converting dynamic variable colors and: {database_setup_snippet}"
             final_html_raw = await call_gemini_agent("Kraken Assembler", assembler_instruction, f"Req: {user_task}\nCtx: {combined_context}")
             final_html = await self_heal_output_code(final_html_raw)
 
             asyncio.create_task(save_history_bg(session_id, user_task, final_html))
             
-            chunk_size = 60
+            chunk_size = 4096
             for i in range(0, len(final_html), chunk_size):
                 await websocket.send_json({"agent": "Kraken Assembler", "chunk_output": final_html[i:i+chunk_size]})
             
