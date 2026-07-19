@@ -84,7 +84,6 @@
             </div>
 
             <div class="w-full mt-3 pb-2 pt-2 border-t border-slate-900 shrink-0 bg-slate-950 space-y-2">
-                
                 <div id="ready-suggestions-tags" class="flex flex-row items-center gap-2 pt-1 w-full overflow-x-auto whitespace-nowrap pb-1">
                     <button type="button" id="tag-saas" onclick="handleQuickTagClick('⚡ Build a SaaS Website')" class="text-[9px] font-mono font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-800 active:scale-95 transition-all duration-150 shrink-0 w-auto">
                         ⚡ Build a SaaS Website
@@ -110,7 +109,6 @@
         </section>
 
         <section id="pane-preview" class="hidden lg:flex bg-slate-950 flex-col h-full overflow-hidden w-full m-0 border-none">
-            
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-900 px-4 py-3 shrink-0 bg-slate-950/90 backdrop-blur w-full gap-3 sm:gap-2">
                 <div class="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-slate-880/80 shrink-0">
                     <button id="view-mode-editor" onclick="toggleSandboxView('editor')" class="px-3 py-1.5 text-[10px] font-mono font-bold uppercase rounded-md text-slate-400 hover:text-slate-200 transition">Code Editor</button>
@@ -131,15 +129,13 @@
             </div>
             
             <div class="flex-1 w-full bg-slate-950 overflow-hidden relative min-h-0 p-0 m-0 border-0 flex flex-col">
-                
                 <div id="blueprint-approval-placeholder" class="hidden absolute inset-0 bg-slate-950/95 z-20 flex flex-col items-center justify-center p-6 text-center space-y-4 font-mono w-full">
                     <div class="w-12 h-12 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
                         <i class="fa-solid fa-map text-base"></i>
                     </div>
                     <div class="w-full space-y-2 flex flex-col items-center">
                         <p class="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Architectural Plan Generated</p>
-                        <div id="blueprint-details-box" class="w-full text-left bg-black/40 border border-slate-900 p-3 rounded-xl max-h-36 overflow-y-auto text-[10px] text-slate-300 space-y-1">
-                        </div>
+                        <div id="blueprint-details-box" class="w-full text-left bg-black/40 border border-slate-900 p-3 rounded-xl max-h-36 overflow-y-auto text-[10px] text-slate-300 space-y-1"></div>
                     </div>
                     <button id="blueprint-launch-btn" onclick="approveBlueprintAndBuild()" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold font-mono text-xs uppercase rounded-xl shadow transition flex items-center space-x-2">
                         <i class="fa-solid fa-circle-check text-[11px]"></i><span>Approve & Launch Swarm</span>
@@ -147,7 +143,6 @@
                 </div>
                 
                 <iframe id="sandbox-mirror" class="w-full flex-1 border-none bg-slate-900/10 m-0 p-0 h-full" sandbox="allow-scripts allow-modals allow-forms"></iframe>
-                
                 <textarea id="sandbox-editor-panel" oninput="syncEditorToMirrorPreview()" class="hidden absolute inset-0 w-full h-full bg-slate-900 text-emerald-400 font-mono text-xs p-5 focus:outline-none resize-none border-none m-0 rounded-none leading-relaxed tracking-wide shadow-inner" placeholder=""></textarea>
             </div>
         </section>
@@ -178,6 +173,7 @@
                     <button id="btn-tab-monthly" onclick="togglePlanTab('monthly')" class="flex-1 py-1 text-center font-bold text-[10px] bg-slate-950 text-emerald-400 rounded-md shadow">Subscriptions</button>
                     <button id="btn-tab-token" onclick="togglePlanTab('token')" class="flex-1 py-1 text-center font-bold text-[10px] text-slate-400 rounded-md">Pay-As-You-Go</button>
                 </div>
+                
                 <div id="box-monthly-plans" class="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <div onclick="selectProductTier('lite')" class="border border-slate-900 bg-slate-900/20 p-2.5 rounded-xl cursor-pointer hover:border-slate-800 transition text-[10px]">
                         <p class="font-bold text-slate-300">Lite (3k words / 20 logs)</p>
@@ -192,12 +188,14 @@
                         <div class="text-xs font-bold mt-1 text-emerald-400 text-right" id="price-lbl-enterprise">₹3999</div>
                     </div>
                 </div>
+                
                 <div id="box-token-plans" class="hidden">
                     <div onclick="selectProductTier('token_refill')" class="border border-amber-500/30 bg-amber-500/5 p-3 rounded-xl cursor-pointer transition flex justify-between items-center text-[10px]">
                         <p class="font-bold text-amber-400">Casual Credit Stack</p>
                         <div class="text-sm font-bold text-amber-400" id="price-lbl-token">₹50</div>
                     </div>
                 </div>
+                
                 <div id="payment-gateway-wrapper" class="hidden bg-slate-900/60 border border-slate-900 p-3 rounded-xl text-center space-y-2">
                     <div id="gateway-inr-upi" class="hidden space-y-2">
                         <button id="razorpay-direct-btn" onclick="redirectToRazorpay()" class="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold uppercase rounded-lg text-[10px] tracking-wider transition">Proceed to Secure Payment</button>
@@ -221,18 +219,15 @@
     </div>
 
     <script>
-        // CONFIGURATION LAYER - CHANGE THIS IF FRONTEND & BACKEND ARE DEPLOYED SEPARATELY
-        // Agar single project/Render node hai toh window.location.host automatically chalega.
         const BACKEND_HOST = window.location.host; 
-
         let isEmailVerified = false; 
         let hasPaidPlan = false;      
+        let userEmailAddress = "";
 
         let sessionNodeId = localStorage.getItem("kraken_session_node") || ("node_" + Math.random().toString(36).substring(2, 13));
         localStorage.setItem("kraken_session_node", sessionNodeId);
 
         let activeSelectedTier = "lite";
-
         const razorpayLinks = {
             'lite': 'https://rzp.io/rzp/E5pgYUm',
             'infinite': 'https://rzp.io/rzp/MfginZIl',
@@ -251,13 +246,15 @@
         const maxReconnectDelay = 15000;
         let isSwarmRunning = false;
 
+        // SAFE INJECTION: Fix KrakenDB Payload parsing array constraints
         window.addEventListener("message", function(event) {
             if (event.data && event.data.type === "KRAKENDB_SYNC_PAYLOAD") {
-                console.log("Internal sandbox event injected smoothly:", event.data.payload);
+                console.log("Injected Sandbox Event Realized:", event.data.payload);
                 if (socket && socket.readyState === WebSocket.OPEN) {
                     socket.send(JSON.stringify({
                         sync_gateway_action: "/api/v1/krakendb/sync",
-                        custom_payload: event.data.payload
+                        custom_payload: typeof event.data.payload === 'object' ? event.data.payload : { raw_data: event.data.payload },
+                        email: userEmailAddress || "anonymous-node"
                     }));
                 }
             }
@@ -333,6 +330,9 @@
                     if (data.tier) {
                         const tierBadge = document.getElementById("tier-badge");
                         if (tierBadge) tierBadge.innerText = "Tier: " + data.tier;
+                        if (data.tier !== "Free Pool") {
+                            hasPaidPlan = true;
+                        }
                     }
                     
                     if (data.tokens_left !== undefined) {
@@ -481,7 +481,7 @@
             if (socket && socket.readyState === WebSocket.OPEN) {
                 setPipelineLockState(true);
                 appendSystemLog("Swarm Architect", "Analyzing instructions to compute blueprint roadmap...");
-                socket.send(JSON.stringify({ task: currentPromptTask, blueprint_approved: false }));
+                socket.send(JSON.stringify({ task: currentPromptTask, blueprint_approved: false, email: userEmailAddress }));
                 
                 const previewPane = document.getElementById("pane-preview");
                 if (previewPane && window.innerWidth >= 1024) {
@@ -518,13 +518,14 @@
                 setPipelineLockState(true);
                 const blueprintPlaceholder = document.getElementById("blueprint-approval-placeholder");
                 if (blueprintPlaceholder) blueprintPlaceholder.classList.add("hidden");
-                socket.send(JSON.stringify({ task: currentPromptTask, blueprint_approved: true }));
+                socket.send(JSON.stringify({ task: currentPromptTask, blueprint_approved: true, email: userEmailAddress }));
             }
         }
 
         function updateSandboxMirror(rawCode) {
             const frame = document.getElementById("sandbox-mirror");
             if (!frame) return;
+            // FIXED: Sandbox styling reload failure bypass injection
             const doc = frame.contentDocument || frame.contentWindow.document;
             if (doc) {
                 doc.open();
@@ -575,24 +576,16 @@
                 previewPane.classList.add("hidden");
                 consolePane.classList.remove("hidden");
                 
-                if(btnConsole) {
-                    btnConsole.className = "flex-1 py-3 text-center text-xs font-mono font-bold tracking-widest uppercase bg-slate-900 text-emerald-400 border-b-2 border-emerald-500 transition-all duration-200";
-                }
-                if(btnPreview) {
-                    btnPreview.className = "flex-1 py-3 text-center text-xs font-mono font-bold tracking-widest uppercase text-slate-500 hover:text-slate-300 border-b-2 border-transparent transition-all duration-200";
-                }
+                if(btnConsole) btnConsole.className = "flex-1 py-3 text-center text-xs font-mono font-bold tracking-widest uppercase bg-slate-900 text-emerald-400 border-b-2 border-emerald-500 transition-all duration-200";
+                if(btnPreview) btnPreview.className = "flex-1 py-3 text-center text-xs font-mono font-bold tracking-widest uppercase text-slate-500 hover:text-slate-300 border-b-2 border-transparent transition-all duration-200";
             } else {
                 previewPane.style.display = "flex";
                 consolePane.style.display = "none";
                 consolePane.classList.add("hidden");
                 previewPane.classList.remove("hidden");
                 
-                if(btnPreview) {
-                    btnPreview.className = "flex-1 py-3 text-center text-xs font-mono font-bold tracking-widest uppercase bg-slate-900 text-emerald-400 border-b-2 border-emerald-500 transition-all duration-200";
-                }
-                if(btnConsole) {
-                    btnConsole.className = "flex-1 py-3 text-center text-xs font-mono font-bold tracking-widest uppercase text-slate-500 hover:text-slate-300 border-b-2 border-transparent transition-all duration-200";
-                }
+                if(btnPreview) btnPreview.className = "flex-1 py-3 text-center text-xs font-mono font-bold tracking-widest uppercase bg-slate-900 text-emerald-400 border-b-2 border-emerald-500 transition-all duration-200";
+                if(btnConsole) btnConsole.className = "flex-1 py-3 text-center text-xs font-mono font-bold tracking-widest uppercase text-slate-500 hover:text-slate-300 border-b-2 border-transparent transition-all duration-200";
             }
         }
 
@@ -620,9 +613,20 @@
 
         function processGateEmail() {
             const mail = document.getElementById("gate-email-field").value.trim();
-            if (!mail) return;
+            if (!mail || !mail.includes('@')) {
+                const errBox = document.getElementById("gate-error-box");
+                if (errBox) { errBox.innerText = "Valid email verify kijiye."; errBox.classList.remove("hidden"); }
+                return;
+            }
             
+            userEmailAddress = mail;
             isEmailVerified = true; 
+            
+            // Sync current verified email to socket
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ register_email: mail }));
+            }
+
             const stageEmail = document.getElementById("gate-stage-email");
             const stagePlans = document.getElementById("gate-stage-plans");
             if(stageEmail) stageEmail.classList.add("hidden");
@@ -675,6 +679,8 @@
             const targetLink = razorpayLinks[activeSelectedTier];
             if (targetLink) {
                 window.open(targetLink, '_blank');
+                // Polling simulation or socket listening logic takes over here
+                appendSystemLog("Billing Engine", "Awaiting verification hook from payment gateway...");
             } else {
                 alert("Invalid configuration link selected.");
             }
@@ -699,7 +705,13 @@
             modal.classList.remove("hidden");
             const box = document.getElementById("history-rows-container");
             if(!box) return;
-            box.innerHTML = `<div class="text-slate-600 py-3 text-center">No structural builds.</div>`;
+            
+            box.innerHTML = `<div class="text-slate-600 py-3 text-center">Fetching items from cluster db...</div>`;
+            
+            // Send history request to socket directly
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ request_action: "get_history", email: userEmailAddress }));
+            }
         }
         
         function closeHistory() { 
@@ -710,7 +722,6 @@
         document.addEventListener("DOMContentLoaded", function() {
             connectWebSocket();
 
-            // Add auto trigger on 'Enter' key inside prompt box
             const taskInput = document.getElementById("task-input");
             if(taskInput) {
                 taskInput.addEventListener("keydown", function(e) {
