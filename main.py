@@ -225,7 +225,8 @@ async def lifespan(app: FastAPI):
     if redis_client: await redis_client.close()
     if http_client: await http_client.aclose()
 
-app = FastAPI(title="Kraken Swarm Engine", lifespan=lifespan)
+# 🛠️ Ganda default UI khatam karne ke liye docs_url aur redoc_url ko None kar diya hai
+app = FastAPI(title="Kraken Swarm Engine", lifespan=lifespan, docs_url=None, redoc_url=None)
 
 app.add_middleware(
     CORSMiddleware,
@@ -646,6 +647,7 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
 
 # --- BASE ROUTING PLATFORM FIXED ORDER ---
 
+# 🛠️ Loop end karne ke liye seedha root call par dashboard response de rahe hain bina kisi galti ke
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard():
     dashboard_ui = """
@@ -782,10 +784,6 @@ async def serve_dashboard():
     </html>
     """
     return HTMLResponse(content=dashboard_ui, status_code=200)
-
-@app.get("/{catchall:path}")
-async def catch_all_fallback(catchall: str):
-    return RedirectResponse(url="/")
 
 if __name__ == "__main__":
     import uvicorn
