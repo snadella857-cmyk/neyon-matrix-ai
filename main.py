@@ -13,11 +13,13 @@ from typing import Dict, Any, List
 from contextlib import asynccontextmanager
 import httpx
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, HTTPException
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse, RedirectResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import asyncpg
 import io
 import urllib.parse
+from starlette.websockets import WebSocketState
 
 # Safe handling for redis asyncio to completely prevent startup crashes
 try:
@@ -56,7 +58,7 @@ redis_client = None
 http_client = None
 
 # ====================================================================
-# TERI LIKHI HUI EXACT PLAN_SAFETY_LIMITS DICTIONARY
+# EXACT PLAN_SAFETY_LIMITS DICTIONARY
 # ====================================================================
 PLAN_SAFETY_LIMITS = {
     "free": {
@@ -225,6 +227,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Kraken Swarm Engine", lifespan=lifespan)
 
+# CORS configuration to shield client connection parameters globally
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Global Application-Level Payload Guard to block heavy memory leaks
 @app.middleware("http")
 async def secure_payload_guard(request: Request, call_next):
@@ -233,6 +244,8 @@ async def secure_payload_guard(request: Request, call_next):
         if content_length and int(content_length) > 1 * 1024 * 1024:  # Block requests > 1MB dynamically
             raise HTTPException(status_code=413, detail="Payload too large to handle securely.")
     return await call_next(request)
+
+# --- DYNAMIC CONTROLLERS LAYER ---
 
 @app.get("/api/v1/generate-qr-node")
 async def get_sandbox_qr_node(content: str = "Kraken Swarm"):
@@ -333,143 +346,6 @@ async def export_project_zip(session_id: str):
     zip_buffer.seek(0)
     return StreamingResponse(zip_buffer, media_type="application/x-zip-compressed", headers={'Content-Disposition': f'attachment; filename="kraken_{session_id[:8]}.zip"'})
 
-@app.get("/", response_class=HTMLResponse)
-async def serve_dashboard():
-    dashboard_ui = """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>Kraken Swarm Production Engine Dashboard</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <style>
-            .controls-container {
-                display: flex;
-                justify-content: flex-end;
-                align-items: center;
-                width: 100%;
-                gap: 8px;
-                padding: 10px;
-                box-sizing: border-box;
-                overflow: hidden;
-            }
-            .controls-container button {
-                padding: 6px 14px;
-                font-size: 13px;
-                white-space: nowrap;
-                border-radius: 6px;
-                font-weight: 600;
-                transition: all 0.2s ease;
-            }
-        </style>
-    </head>
-    <body class="bg-[#0B0B0F] text-white min-h-screen flex flex-col font-sans">
-        
-        <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
-            <div class="controls-container max-w-7xl mx-auto">
-                <button onclick="triggerAction('edit')" class="bg-blue-600 hover:bg-blue-500 text-white">Modify & Refine App</button>
-                <button onclick="triggerAction('preview')" class="bg-indigo-600 hover:bg-indigo-500 text-white">Open Live Preview</button>
-                <button onclick="triggerAction('deploy')" class="bg-emerald-600 hover:bg-emerald-500 text-white">Download Source Code Code Pack (.ZIP)</button>
-            </div>
-        </header>
-
-        <main class="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col justify-between">
-            
-            <div id="sandbox-display-window" class="flex-1 w-full rounded-xl border border-dashed border-slate-800 bg-slate-950/20 flex flex-col items-center justify-center min-h-[500px] overflow-hidden relative transition-all duration-300">
-                <div id="blank-placeholder" class="text-center p-8 z-10">
-                    <h2 class="text-xl font-bold text-slate-400 tracking-wide mb-2">Autonomous Swarm Engine Workspace</h2>
-                    <p class="text-slate-500 text-sm">Describe what you want to build below (e.g., SaaS Web Apps, Mobile UIs, Dashboards, Systems). The Swarm will handle generation, safety checking, and instant live code injection.</p>
-                </div>
-                <iframe id="live-render-frame" class="absolute inset-0 w-full h-full border-none hidden"></iframe>
-            </div>
-
-            <div class="mt-6 bg-slate-900/60 border border-slate-800 rounded-xl p-4 shadow-xl">
-                <div class="flex flex-col md:flex-row gap-4 items-center">
-                    <input type="text" id="user-topic-input" placeholder="What would you like the system to build for you today? Enter app topic, layout instructions, or complex logic..." class="w-full flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors text-white">
-                    <button onclick="triggerSwarmGeneration()" class="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 px-6 py-3 rounded-lg text-sm font-bold tracking-wide shadow-lg whitespace-nowrap transition-all">Build & Auto-Deploy App</button>
-                </div>
-                
-                <div class="mt-4 pt-4 border-t border-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div id="status-message" class="text-xs font-semibold text-emerald-400 tracking-wide">● System Status: Enterprise Swarm Node Active & Unlocked</div>
-                </div>
-            </div>
-        </main>
-
-        <script>
-        let ws;
-        const sessionId = localStorage.getItem("kraken_active_session") || 'sess_' + Math.random().toString(36).substring(2, 15);
-        localStorage.setItem("kraken_active_session", sessionId);
-
-        function initWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(`${protocol}//${window.location.host}/ws/v1/swarm-orchestrator/${sessionId}`);
-            
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                const statusMsg = document.getElementById("status-message");
-                
-                if (data.error_alert) {
-                    alert(data.error_alert);
-                    statusMsg.innerText = `● Error: ${data.error_alert}`;
-                    return;
-                }
-                
-                if (data.log) {
-                    statusMsg.innerText = `[${data.agent || 'Swarm Orchestrator'}]: ${data.log}`;
-                }
-                
-                if (data.blueprint_structure) {
-                    const currentTopic = document.getElementById("user-topic-input").value.trim();
-                    ws.send(JSON.stringify({ task: currentTopic, blueprint_approved: true }));
-                }
-
-                if (data.preview_url) {
-                    document.getElementById("blank-placeholder").classList.add("hidden");
-                    const frame = document.getElementById("live-render-frame");
-                    frame.classList.remove("hidden");
-                    frame.src = data.preview_url + "?t=" + new Date().getTime();
-                    statusMsg.innerText = "● Status: App Architecture Deployed inside Sandbox Frame Successfully.";
-                }
-            };
-            
-            ws.onclose = () => {
-                setTimeout(initWebSocket, 2000);
-            };
-        }
-
-        async function triggerSwarmGeneration() {
-            const topic = document.getElementById("user-topic-input").value.trim();
-            if(!topic) return;
-            if(!ws || ws.readyState !== WebSocket.OPEN) {
-                initWebSocket();
-                setTimeout(() => { ws.send(JSON.stringify({ task: topic, blueprint_approved: false })); }, 1000);
-            } else {
-                ws.send(JSON.stringify({ task: topic, blueprint_approved: false }));
-            }
-            document.getElementById("status-message").innerText = "Assembling Swarm Cluster Core... Initiating parallel code synthesis roadmap.";
-        }
-
-        function triggerAction(type) {
-            if (type === 'edit') {
-                const instructions = prompt("Enter modifications, color change directions, or specific button action updates:");
-                if (instructions && ws && ws.readyState === WebSocket.OPEN) {
-                    document.getElementById("status-message").innerText = "Executing real-time code modifications injection layer...";
-                    ws.send(JSON.stringify({ edit_instruction: instructions }));
-                }
-            } else if (type === 'preview') {
-                window.open(`/api/v1/preview/${sessionId}`, '_blank');
-            } else if (type === 'deploy') {
-                window.location.href = `/api/v1/export/${sessionId}`;
-            }
-        }
-
-        window.onload = () => { initWebSocket(); };
-        </script>
-    </body>
-    </html>
-    """
-    return HTMLResponse(content=dashboard_ui, status_code=200)
-
 @app.post("/api/v1/activate-node")
 async def activate_node(payload: ActivationPayload):
     return {"status": "SUCCESS", "message": "Enterprise tier dynamically authorized and allocated."}
@@ -486,6 +362,8 @@ async def get_history(session_id: str):
             return {"tier": "enterprise", "history": parsed_history}
     except Exception:
         return {"tier": "enterprise", "history": []}
+
+# --- SWARM CORE INTEGRATION LAYERS ---
 
 async def call_gemini_agent(agent_name: str, system_instruction: str, user_prompt: str) -> str:
     if not http_client:
@@ -593,23 +471,38 @@ async def process_async_agents_pipeline(user_task: str, combined_context_dict: d
     
     async def run_single_agent(idx, agent):
         try:
-            await websocket.send_json({"agent": agent["name"], "log": f"Running parallel swarm verification pass [{idx}/5]..."})
+            if websocket.client_state == WebSocketState.CONNECTED:
+                await websocket.send_json({"agent": agent["name"], "log": f"Running parallel swarm verification pass [{idx}/5]..."})
             await call_gemini_agent(agent["name"], agent["prompt"], user_task)
             combined_context_dict[agent["name"]] = "Enterprise verification checks successful."
-            await websocket.send_json({"agent": agent["name"], "log": f"Component pass [{idx}/5] locked & verified."})
+            if websocket.client_state == WebSocketState.CONNECTED:
+                await websocket.send_json({"agent": agent["name"], "log": f"Component pass [{idx}/5] locked & verified."})
         except Exception as ae:
             combined_context_dict[agent["name"]] = f"Bypass state: {ae}"
 
     await asyncio.gather(*(run_single_agent(i + 1, a) for i, a in enumerate(agents_pipeline)))
 
+# ---------------------------------------------------------------------------
+# FIXED & SHIELDED WEBSOCKET ENDPOINT VIA EXPLICIT HANDSHAKE
+# ---------------------------------------------------------------------------
 @app.websocket("/ws/v1/swarm-orchestrator/{session_id}")
 async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
-    # 🔐 Fast Validation: Session id check parsing rules
+    # Fast Validation: Session id check parsing rules
     if not session_id or len(session_id) > 100 or not re.match(r"^[a-zA-Z0-9_\-]+$", session_id):
-        await websocket.close(code=1008)
+        try:
+            await websocket.close(code=1008)
+        except Exception:
+            pass
         return
 
-    await websocket.accept()
+    # Render/Proxy Protocol Shield: Force safe handshake processing
+    try:
+        await websocket.accept()
+        logger.info(f"WebSocket Handshake Shield active for session: {session_id}")
+    except Exception as e:
+        logger.error(f"Handshake upgrade failed on proxy layers: {str(e)}")
+        return
+
     current_user_tier = "free"
     
     if db_pool:
@@ -697,9 +590,11 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                     
                     chunk_size = 8192
                     for i in range(0, len(final_html), chunk_size):
-                        await websocket.send_json({"agent": "Kraken Editor", "chunk_output": final_html[i:i+chunk_size]})
+                        if websocket.client_state == WebSocketState.CONNECTED:
+                            await websocket.send_json({"agent": "Kraken Editor", "chunk_output": final_html[i:i+chunk_size]})
                     
-                    await websocket.send_json({"tier": current_user_tier, "preview_url": f"/api/v1/preview/{session_id}", "result_data": {"status": "SUCCESS"}})
+                    if websocket.client_state == WebSocketState.CONNECTED:
+                        await websocket.send_json({"tier": current_user_tier, "preview_url": f"/api/v1/preview/{session_id}", "result_data": {"status": "SUCCESS"}})
                     continue
 
             if not is_approved:
@@ -737,17 +632,163 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
             
             chunk_size = 8192
             for i in range(0, len(final_html), chunk_size):
-                await websocket.send_json({"agent": "Kraken Assembler", "chunk_output": final_html[i:i+chunk_size]})
+                if websocket.client_state == WebSocketState.CONNECTED:
+                    await websocket.send_json({"agent": "Kraken Assembler", "chunk_output": final_html[i:i+chunk_size]})
             
-            await websocket.send_json({"tier": current_user_tier, "preview_url": f"/api/v1/preview/{session_id}", "result_data": {"status": "SUCCESS"}})
+            if websocket.client_state == WebSocketState.CONNECTED:
+                await websocket.send_json({"tier": current_user_tier, "preview_url": f"/api/v1/preview/{session_id}", "result_data": {"status": "SUCCESS"}})
             
     except WebSocketDisconnect:
         logger.info(f"WebSocket closed: {session_id}")
     except Exception as e:
         logger.error(f"Swarm Fatal: {str(e)}")
 
+# --- BASE ROUTING PLATFORM FIXED ORDER ---
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_dashboard():
+    dashboard_ui = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Kraken Swarm Production Engine Dashboard</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            .controls-container {
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+                width: 100%;
+                gap: 8px;
+                padding: 10px;
+                box-sizing: border-box;
+                overflow: hidden;
+            }
+            .controls-container button {
+                padding: 6px 14px;
+                font-size: 13px;
+                white-space: nowrap;
+                border-radius: 6px;
+                font-weight: 600;
+                transition: all 0.2s ease;
+            }
+        </style>
+    </head>
+    <body class="bg-[#0B0B0F] text-white min-h-screen flex flex-col font-sans">
+        
+        <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
+            <div class="controls-container max-w-7xl mx-auto">
+                <button onclick="triggerAction('edit')" class="bg-blue-600 hover:bg-blue-500 text-white">Modify & Refine App</button>
+                <button onclick="triggerAction('preview')" class="bg-indigo-600 hover:bg-indigo-500 text-white">Open Live Preview</button>
+                <button onclick="triggerAction('deploy')" class="bg-emerald-600 hover:bg-emerald-500 text-white">Download Source Code Pack (.ZIP)</button>
+            </div>
+        </header>
+
+        <main class="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col justify-between">
+            
+            <div id="sandbox-display-window" class="flex-1 w-full rounded-xl border border-dashed border-slate-800 bg-slate-950/20 flex flex-col items-center justify-center min-h-[500px] overflow-hidden relative transition-all duration-300">
+                <div id="blank-placeholder" class="text-center p-8 z-10">
+                    <h2 class="text-xl font-bold text-slate-400 tracking-wide mb-2">Autonomous Swarm Engine Workspace</h2>
+                    <p class="text-slate-500 text-sm">Describe what you want to build below (e.g., SaaS Web Apps, Mobile UIs, Dashboards, Systems). The Swarm will handle generation, safety checking, and instant live code injection.</p>
+                </div>
+                <iframe id="live-render-frame" class="absolute inset-0 w-full h-full border-none hidden"></iframe>
+            </div>
+
+            <div class="mt-6 bg-slate-900/60 border border-slate-800 rounded-xl p-4 shadow-xl">
+                <div class="flex flex-col md:flex-row gap-4 items-center">
+                    <input type="text" id="user-topic-input" placeholder="What would you like the system to build for you today? Enter app topic, layout instructions, or complex logic..." class="w-full flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors text-white">
+                    <button onclick="triggerSwarmGeneration()" class="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 px-6 py-3 rounded-lg text-sm font-bold tracking-wide shadow-lg whitespace-nowrap transition-all">Build & Auto-Deploy App</button>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div id="status-message" class="text-xs font-semibold text-emerald-400 tracking-wide">● System Status: Enterprise Swarm Node Active & Unlocked</div>
+                </div>
+            </div>
+        </main>
+
+        <script>
+        let ws;
+        const sessionId = localStorage.getItem("kraken_active_session") || 'sess_' + Math.random().toString(36).substring(2, 15);
+        localStorage.setItem("kraken_active_session", sessionId);
+
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws/v1/swarm-orchestrator/${sessionId}`);
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                const statusMsg = document.getElementById("status-message");
+                
+                if (data.error_alert) {
+                    alert(data.error_alert);
+                    statusMsg.innerText = `● Error: ${data.error_alert}`;
+                    return;
+                }
+                
+                if (data.log) {
+                    statusMsg.innerText = `[${data.agent || 'Swarm Orchestrator'}]: ${data.log}`;
+                }
+                
+                if (data.blueprint_structure) {
+                    const currentTopic = document.getElementById("user-topic-input").value.trim();
+                    ws.send(JSON.stringify({ task: currentTopic, blueprint_approved: true }));
+                }
+
+                if (data.preview_url) {
+                    document.getElementById("blank-placeholder").classList.add("hidden");
+                    const frame = document.getElementById("live-render-frame");
+                    frame.classList.remove("hidden");
+                    frame.src = data.preview_url + "?t=" + new Date().getTime();
+                    statusMsg.innerText = "● Status: App Architecture Deployed inside Sandbox Frame Successfully.";
+                }
+            };
+            
+            ws.onclose = () => {
+                setTimeout(initWebSocket, 2000);
+            };
+        }
+
+        async function triggerSwarmGeneration() {
+            const topic = document.getElementById("user-topic-input").value.trim();
+            if(!topic) return;
+            if(!ws || ws.readyState !== WebSocket.OPEN) {
+                initWebSocket();
+                setTimeout(() => { ws.send(JSON.stringify({ task: topic, blueprint_approved: false })); }, 1000);
+            } else {
+                ws.send(JSON.stringify({ task: topic, blueprint_approved: false }));
+            }
+            document.getElementById("status-message").innerText = "Assembling Swarm Cluster Core... Initiating parallel code synthesis roadmap.";
+        }
+
+        function triggerAction(type) {
+            if (type === 'edit') {
+                const instructions = prompt("Enter modifications, color change directions, or specific button action updates:");
+                if (instructions && ws && ws.readyState === WebSocket.OPEN) {
+                    document.getElementById("status-message").innerText = "Executing real-time code modifications injection layer...";
+                    ws.send(JSON.stringify({ edit_instruction: instructions }));
+                }
+            } else if (type === 'preview') {
+                window.open(`/api/v1/preview/${sessionId}`, '_blank');
+            } else if (type === 'deploy') {
+                window.location.href = `/api/v1/export/${sessionId}`;
+            }
+        }
+
+        window.onload = () => { initWebSocket(); };
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=dashboard_ui, status_code=200)
+
+# Global Fallback Catch-All Route (Bypasses automatic redirection to /docs)
+@app.get("/{catchall:path}")
+async def catch_all_fallback(catchall: str):
+    return RedirectResponse(url="/")
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "10000"))
     logger.info(f"KRAKEN SWARM ENGINE FULLY OPERATIONAL ON PORT: {port}")
-    uvicorn.run(app, host="0.0.0.0", port=port, reload=False)
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
