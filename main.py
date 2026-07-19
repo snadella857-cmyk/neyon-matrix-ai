@@ -62,20 +62,20 @@ http_client = None
 # ====================================================================
 PLAN_SAFETY_LIMITS = {
     "free": {
-        "max_chars": 600,        # <--- 600 Characters Max
-        "max_daily_queries": 2   # <--- Pura satisfy hone ke liye 2 chances.
+        "max_chars": 600,        
+        "max_daily_queries": 2   
     },
-    "lite": {                    # ₹499 Plan
+    "lite": {                    
         "max_chars": 3500,       
         "max_daily_queries": 25      
     },
-    "infinite": {                # ₹999 Plan
+    "infinite": {                
         "max_chars": 8000,       
         "max_daily_queries": 60       
     },
-    "enterprise": {              # ₹3999 Plan
+    "enterprise": {              
         "max_chars": 30000,      
-        "max_daily_queries": 999999  # Bilkul Unlimited
+        "max_daily_queries": 999999  
     }
 }
 
@@ -147,9 +147,9 @@ async def initialize_db_tables():
                             session_id TEXT PRIMARY KEY,
                             email TEXT,
                             device_hash TEXT,
-                            tier TEXT DEFAULT 'enterprise',
+                            tier TEXT DEFAULT 'free',
                             verified BOOLEAN DEFAULT TRUE,
-                            free_tier_claimed BOOLEAN DEFAULT TRUE,
+                            free_tier_claimed BOOLEAN DEFAULT FALSE,
                             arbitrage_risk BOOLEAN DEFAULT FALSE,
                             queries_used_today INT DEFAULT 0,
                             history JSONB DEFAULT '[]'::jsonb
@@ -227,7 +227,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Kraken Swarm Engine", lifespan=lifespan)
 
-# CORS configuration to shield client connection parameters globally
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -236,12 +235,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global Application-Level Payload Guard to block heavy memory leaks
 @app.middleware("http")
 async def secure_payload_guard(request: Request, call_next):
     if request.method in ["POST", "PUT"]:
         content_length = request.headers.get("content-length")
-        if content_length and int(content_length) > 1 * 1024 * 1024:  # Block requests > 1MB dynamically
+        if content_length and int(content_length) > 1 * 1024 * 1024:  
             raise HTTPException(status_code=413, detail="Payload too large to handle securely.")
     return await call_next(request)
 
@@ -268,7 +266,7 @@ async def sync_krakendb(payload: KrakenDBSyncPayload):
         async with db_pool.acquire() as conn:
             await conn.execute(
                 "INSERT INTO krakendb_sync (session_id, store_name, data) VALUES ($1, $2, $3)",
-                payload.session_id, payload.store_name, payload.payload_data
+                payload.session_id, payload.store_name, json.dumps(payload.payload_data)
             )
         return {"status": "SUCCESS", "message": "State dynamic sync captured successfully."}
     except Exception:
@@ -286,9 +284,10 @@ async def get_krakendb_sync(session_id: str):
             )
             results = []
             for r in rows:
+                raw_data = r["data"]
                 results.append({
                     "store_name": r["store_name"],
-                    "data": json.loads(r["data"]) if isinstance(r["data"], str) else r["data"],
+                    "data": json.loads(raw_data) if isinstance(raw_data, str) else raw_data,
                     "updated_at": r["updated_at"].isoformat()
                 })
             return {"session_id": session_id, "states": results}
@@ -348,20 +347,26 @@ async def export_project_zip(session_id: str):
 
 @app.post("/api/v1/activate-node")
 async def activate_node(payload: ActivationPayload):
+    if db_pool:
+        try:
+            async with db_pool.acquire() as conn:
+                await conn.execute("UPDATE user_vault SET tier = 'enterprise' WHERE session_id = $1", payload.session_id)
+        except Exception:
+            pass
     return {"status": "SUCCESS", "message": "Enterprise tier dynamically authorized and allocated."}
 
 @app.get("/api/v1/history/{session_id}")
 async def get_history(session_id: str):
     if not db_pool:
-         return {"tier": "enterprise", "history": []}
+         return {"tier": "free", "history": []}
     try:
         async with db_pool.acquire() as conn:
-            user = await conn.fetchrow("SELECT history FROM user_vault WHERE session_id = $1", session_id)
-            if not user or not user["history"]: return {"tier": "enterprise", "history": []}
+            user = await conn.fetchrow("SELECT history, tier FROM user_vault WHERE session_id = $1", session_id)
+            if not user: return {"tier": "free", "history": []}
             parsed_history = json.loads(user["history"]) if isinstance(user["history"], str) else user["history"]
-            return {"tier": "enterprise", "history": parsed_history}
+            return {"tier": user["tier"] or "free", "history": parsed_history}
     except Exception:
-        return {"tier": "enterprise", "history": []}
+        return {"tier": "free", "history": []}
 
 # --- SWARM CORE INTEGRATION LAYERS ---
 
@@ -482,20 +487,13 @@ async def process_async_agents_pipeline(user_task: str, combined_context_dict: d
 
     await asyncio.gather(*(run_single_agent(i + 1, a) for i, a in enumerate(agents_pipeline)))
 
-# ---------------------------------------------------------------------------
-# FIXED & SHIELDED WEBSOCKET ENDPOINT VIA EXPLICIT HANDSHAKE
-# ---------------------------------------------------------------------------
 @app.websocket("/ws/v1/swarm-orchestrator/{session_id}")
 async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
-    # Fast Validation: Session id check parsing rules
     if not session_id or len(session_id) > 100 or not re.match(r"^[a-zA-Z0-9_\-]+$", session_id):
-        try:
-            await websocket.close(code=1008)
-        except Exception:
-            pass
+        try: await websocket.close(code=1008)
+        except Exception: pass
         return
 
-    # Render/Proxy Protocol Shield: Force safe handshake processing
     try:
         await websocket.accept()
         logger.info(f"WebSocket Handshake Shield active for session: {session_id}")
@@ -508,9 +506,9 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
     if db_pool:
         try:
             async with db_pool.acquire() as conn:
-                user = await conn.fetchrow("SELECT session_id, tier FROM user_vault WHERE session_id = $1", session_id)
+                user = await conn.fetchrow("SELECT tier FROM user_vault WHERE session_id = $1", session_id)
                 if user is None:
-                    await conn.execute("INSERT INTO user_vault (session_id, tier, verified, free_tier_claimed) VALUES ($1, 'free', TRUE, FALSE)", session_id)
+                    await conn.execute("INSERT INTO user_vault (session_id, tier, verified, free_tier_claimed, queries_used_today) VALUES ($1, 'free', TRUE, FALSE, 0)", session_id)
                     current_user_tier = "free"
                 else:
                     current_user_tier = user["tier"] if user["tier"] else "free"
@@ -525,8 +523,9 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
     try:
         while True:
             data = await websocket.receive_text()
-            if len(data) > 65000:  # Protect socket buffer from flooding
-                await websocket.send_json({"error_alert": "Input stream payload buffer maximum limit reached."})
+            if len(data) > 65000:  
+                if websocket.client_state == WebSocketState.CONNECTED:
+                    await websocket.send_json({"error_alert": "Input stream payload buffer maximum limit reached."})
                 continue
 
             try: payload = json.loads(data)
@@ -540,7 +539,6 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
 
             incoming_payload_text = edit_instruction if edit_instruction else user_task
 
-            # 🔐 TOKENS LOGIC LAYER: VALIDATION & ONE-TIME FREE TRIAL BLOCKER
             if db_pool:
                 try:
                     async with db_pool.acquire() as conn:
@@ -550,28 +548,28 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                             queries_today = user_metrics["queries_used_today"] if user_metrics["queries_used_today"] else 0
                             free_claimed = user_metrics["free_tier_claimed"]
                             
-                            # 1. CHARACTER LENGTH LIMITATION ENGINE CHECK
                             if len(incoming_payload_text) > PLAN_SAFETY_LIMITS[tier]["max_chars"]:
-                                await websocket.send_json({"error_alert": f"Limit Exceeded! {tier} plan mein max {PLAN_SAFETY_LIMITS[tier]['max_chars']} characters hi allowed hain."})
+                                if websocket.client_state == WebSocketState.CONNECTED:
+                                    await websocket.send_json({"error_alert": f"Limit Exceeded! {tier} plan mein max {PLAN_SAFETY_LIMITS[tier]['max_chars']} characters hi allowed hain."})
                                 continue
 
-                            # 2. STRICIT ONE-TIME FREE TIER CLAIM ENGINE & DAILY QUERY CAP CHECK
                             if tier == "free":
                                 if free_claimed and queries_today >= PLAN_SAFETY_LIMITS["free"]["max_daily_queries"]:
-                                    await websocket.send_json({"error_alert": "Bhai, aapka one-time free trial khatam ho chuka hai. Kripya aage use karne ke liye Lite ya Infinite plan subscribe karein!"})
+                                    if websocket.client_state == WebSocketState.CONNECTED:
+                                        await websocket.send_json({"error_alert": "Bhai, aapka one-time free trial khatam ho chuka hai. Kripya subscription plan subscribe karein!"})
                                     continue
                                 
                                 if not free_claimed:
                                     await conn.execute("UPDATE user_vault SET free_tier_claimed = TRUE WHERE session_id = $1", session_id)
                             
-                            # 3. GLOBAL ACTIVE PLANS DAILY TOTAL CAP QUERY CHECK
                             if queries_today >= PLAN_SAFETY_LIMITS[tier]["max_daily_queries"]:
-                                await websocket.send_json({"error_alert": f"Aapki is month/day ki {tier} tier ki query limit khatam ho gayi hai!"})
+                                if websocket.client_state == WebSocketState.CONNECTED:
+                                    await websocket.send_json({"error_alert": f"Aapki is tier ({tier}) ki query limit khatam ho gayi hai!"})
                                 continue
                                 
                             await conn.execute("UPDATE user_vault SET queries_used_today = queries_used_today + 1 WHERE session_id = $1", session_id)
                 except Exception as db_err:
-                    logger.error(f"Validation failure bypass tracking: {db_err}")
+                    logger.error(f"Validation failure tracking: {db_err}")
 
             if edit_instruction:
                 existing_html = ""
@@ -582,7 +580,8 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                 if not existing_html:
                     user_task = edit_instruction
                 else:
-                    await websocket.send_json({"agent": "Kraken Refinement Matrix", "log": "Injecting structural refinements into target dashboard codebase..."})
+                    if websocket.client_state == WebSocketState.CONNECTED:
+                        await websocket.send_json({"agent": "Kraken Refinement Matrix", "log": "Injecting structural refinements into target dashboard codebase..."})
                     editor_system_instruction = "Modify the existing active software codebase template based strictly on user refinement instructions. Retain complete styles."
                     final_html_raw = await call_gemini_agent("Kraken Editor", editor_system_instruction, f"CodeBase Source:\n{existing_html}\n\nRefinement Request:\n{edit_instruction}")
                     final_html = await self_heal_output_code(final_html_raw)
@@ -598,7 +597,8 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
                     continue
 
             if not is_approved:
-                await websocket.send_json({"agent": "Kraken Swarm Core", "blueprint_structure": "AUTORUN_APPROVED", "log": "Universal Application Blueprint verified and passed."})
+                if websocket.client_state == WebSocketState.CONNECTED:
+                    await websocket.send_json({"agent": "Kraken Swarm Core", "blueprint_structure": "AUTORUN_APPROVED", "log": "Universal Application Blueprint verified and passed."})
                 continue
 
             combined_context_dict = {}
@@ -624,7 +624,8 @@ async def websocket_swarm_endpoint(websocket: WebSocket, session_id: str):
             """
             
             assembler_instruction = f"Compile a premium high-converting production UI web application/dashboard module with full structural functionality, layout menus, and interactive scripts. Use Tailwind CSS styling throughout. Inject this code layer: {database_setup_snippet}"
-            await websocket.send_json({"agent": "Kraken Code Assembler", "log": "Synthesizing master package files layers..."})
+            if websocket.client_state == WebSocketState.CONNECTED:
+                await websocket.send_json({"agent": "Kraken Code Assembler", "log": "Synthesizing master package files layers..."})
             final_html_raw = await call_gemini_agent("Kraken Assembler", assembler_instruction, f"Target Objective: {user_task}\nVerification Data: {combined_context}")
             final_html = await self_heal_output_code(final_html_raw)
 
@@ -782,7 +783,6 @@ async def serve_dashboard():
     """
     return HTMLResponse(content=dashboard_ui, status_code=200)
 
-# Global Fallback Catch-All Route (Bypasses automatic redirection to /docs)
 @app.get("/{catchall:path}")
 async def catch_all_fallback(catchall: str):
     return RedirectResponse(url="/")
